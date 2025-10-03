@@ -9,6 +9,11 @@
 #include <cstring>
 #include "../voxel/world.hpp"
 #include "../mesh/greedy_mesher.hpp"
+#include <filesystem>
+#include <fstream>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 
 namespace render {
 
@@ -107,13 +112,51 @@ static void drawCrosshair(int w, int h) {
 	glMatrixMode(GL_MODELVIEW);
 }
 
+static std::string nowTimestamp() {
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    auto t = system_clock::to_time_t(now);
+    std::tm tm{};
+#if defined(_WIN32)
+    localtime_s(&tm, &t);
+#else
+    localtime_r(&t, &tm);
+#endif
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+    return oss.str();
+}
+
+static void writeRunError(const std::string& message) {
+    try {
+        std::filesystem::create_directories("logs");
+        std::ofstream f("logs/run_errors.log", std::ios::app);
+        if (f) {
+            static bool first = true;
+            if (first) {
+                f << "\n============ " << nowTimestamp() << " - run errors session ============\n";
+                first = false;
+            }
+            f << '[' << nowTimestamp() << "] " << message << '\n';
+            f.flush();
+        }
+    } catch (...) {}
+    std::fprintf(stderr, "%s\n", message.c_str());
+}
+
 int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 	if (!glfwInit()) {
 		core::log(core::LogLevel::Error, "Failed to init GLFW");
+		const char* disp = std::getenv("DISPLAY");
+		std::string d = disp ? disp : "(null)";
+		writeRunError(std::string("GLFW init failed. DISPLAY=") + d + ", ensure X server is running.");
 		return -1;
 	}
 	GLFWwindow* window = glfwCreateWindow(800, 600, "Voxel Demo", nullptr, nullptr);
 	if (!window) {
+		const char* disp = std::getenv("DISPLAY");
+		std::string d = disp ? disp : "(null)";
+		writeRunError(std::string("Failed to create GLFW window. DISPLAY=") + d + ", windowing not available.");
 		glfwTerminate();
 		return -1;
 	}
@@ -147,6 +190,12 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
     mesh::Mesh mesh = mesher.buildMesh(chunk);
 
     bool showDebug = false;
+    // FPS tracking
+    auto startTime = std::chrono::steady_clock::now();
+    auto lastFpsTime = startTime;
+    auto lastTitleTime = startTime;
+    int frameCount = 0;
+    double fps = 0.0;
 
     while (!glfwWindowShouldClose(window)) {
         // input
@@ -279,21 +328,36 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             }
         }
 
-        // F3: update window title with camera/target info
-        if (showDebug) {
+        // FPS update accounting
+        frameCount++;
+        auto now = std::chrono::steady_clock::now();
+        double dtFps = std::chrono::duration<double>(now - lastFpsTime).count();
+        if (dtFps >= 1.0) {
+            fps = frameCount / dtFps;
+            frameCount = 0;
+            lastFpsTime = now;
+        }
+        // Update title at most 4x/sec to reduce border flicker in some X servers
+        if (std::chrono::duration<double>(now - lastTitleTime).count() >= 0.25) {
             char title[256];
-            std::snprintf(title, sizeof(title), "Voxel Demo | cam(%.2f,%.2f,%.2f) look(%.2f,%.2f,%.2f)", camX, camY, camZ, fwdX, fwdY, fwdZ);
-            if (hit.hit) {
-                char buf2[96];
-                std::snprintf(buf2, sizeof(buf2), " | hit(%d,%d,%d)", hit.x, hit.y, hit.z);
-                size_t len = std::strlen(title);
-                size_t avail = sizeof(title) - 1 - len;
-                std::strncpy(title + len, buf2, avail);
-                title[len + avail] = '\0';
+            if (showDebug) {
+                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f | cam(%.2f,%.2f,%.2f) look(%.2f,%.2f,%.2f)",
+                              fps, camX, camY, camZ, fwdX, fwdY, fwdZ);
+                if (hit.hit) {
+                    char buf2[96];
+                    std::snprintf(buf2, sizeof(buf2), " | hit(%d,%d,%d)", hit.x, hit.y, hit.z);
+                    size_t len = std::strlen(title);
+                    size_t avail = sizeof(title) - 1 - len;
+                    if (avail > 0) {
+                        std::strncpy(title + len, buf2, avail);
+                        title[len + avail <= sizeof(title)-1 ? len + avail : sizeof(title)-1] = '\0';
+                    }
+                }
+            } else {
+                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f", fps);
             }
             glfwSetWindowTitle(window, title);
-        } else {
-            glfwSetWindowTitle(window, "Voxel Demo");
+            lastTitleTime = now;
         }
 
         // Draw HUD crosshair and present

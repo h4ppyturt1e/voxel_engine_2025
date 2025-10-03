@@ -50,7 +50,15 @@ void ConsoleSink::write(LogLevel level, const std::string& message) {
 	out.flush();
 }
 
-FileSink::FileSink(const std::string& filePath) : path_(filePath) {}
+FileSink::FileSink(const std::string& filePath) : path_(filePath) {
+	// Write a session separator on creation
+	std::lock_guard<std::mutex> lock(g_mutex);
+	std::ofstream file(path_, std::ios::app);
+	if (file) {
+		file << "\n============ " << timestampNow() << " - session start ============\n";
+		file.flush();
+	}
+}
 
 void FileSink::write(LogLevel level, const std::string& message) {
 	std::lock_guard<std::mutex> lock(g_mutex);

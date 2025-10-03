@@ -42,6 +42,7 @@ If `:0.0` fails, use your Windows host IP for DISPLAY.
 - F: toggle wireframe
 - R: recenter camera to world origin
 - F3: toggle debug title (camera xyz, look vector, current hit voxel)
+  - Title also shows an FPS counter (updates ~4x/second)
 
 ## Config
 
@@ -54,6 +55,26 @@ log.level=info
 log.file=
 ```
 If `log.file` is empty, logs are written to `logs/engine_YYYYMMDD_HHMMSS.log` and the latest 50 files are kept.
+
+Runtime logs
+- Console logs stream live (flushed each line) and to rotating files in `logs/`
+- Run errors (GLFW/X issues) are also written to `logs/run_errors.log` with session separators
+
+## Troubleshooting (WSL + VcXsrv)
+
+- Ensure VcXsrv is started with: Multiple windows, Start no client, Disable access control, Disable Native OpenGL, and allowed in Windows Firewall (Private+Public)
+- In WSL, set display variables before running:
+  ```bash
+  export DISPLAY=127.0.0.1:0.0
+  export LIBGL_ALWAYS_INDIRECT=1
+  ./build/bin/voxel_app
+  ```
+- If windows do not appear: try software GL:
+  ```bash
+  export LIBGL_ALWAYS_SOFTWARE=1
+  export MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
+  ```
+- Check `logs/run_errors.log` for explicit messages (includes DISPLAY value)
 
 ## Notes
 
