@@ -55,7 +55,7 @@ int main() {
 
 #ifdef VOXEL_WITH_GL
     core::log(core::LogLevel::Info, "GL demo: enabled (opening window)...");
-    render::run_demo(m);
+    render::run_demo(world, gm);
 #else
     core::log(core::LogLevel::Info, "GL demo: disabled (VOXEL_WITH_GL=OFF)");
 #endif

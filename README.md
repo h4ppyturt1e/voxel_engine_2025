@@ -51,5 +51,14 @@ export DISPLAY=$(grep -m1 nameserver /etc/resolv.conf | awk '{print $2}'):0.0
 ./bin/voxel_app
 ```
 
+### Controls (GL demo)
+
+- Mouse: look (inverted Y)
+- WASD: free-fly movement relative to facing direction
+- Q: remove block under crosshair (except the world origin block)
+- E: place block in front of the hit (or a short distance ahead)
+- R: recenter camera to look at world origin (0,0,0)
+- F: toggle wireframe mode
+
 
 
