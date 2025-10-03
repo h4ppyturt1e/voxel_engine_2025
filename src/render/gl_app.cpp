@@ -6,6 +6,7 @@
 #include "../core/logging.hpp"
 #include "../core/math.hpp"
 #include <cmath>
+#include <cstring>
 #include "../voxel/world.hpp"
 #include "../mesh/greedy_mesher.hpp"
 
@@ -145,7 +146,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
     voxel::Chunk& chunk = world.getOrCreateChunk(0,0);
     mesh::Mesh mesh = mesher.buildMesh(chunk);
 
-    // state for toggles
+    bool showDebug = false;
 
     while (!glfwWindowShouldClose(window)) {
         // input
@@ -214,11 +215,14 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		glEnd();
 
         // Keyboard: recenter (R) to world origin view
-        static bool prevR = false, prevF = false, prevQ = false, prevE = false; 
+        static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevML=false, prevMR=false; 
         bool curR = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
         bool curF = glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS;
         bool curQ = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
         bool curE = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
+        bool curF3 = glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS;
+        bool curML = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+        bool curMR = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
         if (curR && !prevR) {
             camX = 8.0f; camY = 10.0f; camZ = 28.0f;
             float toX = 8.0f - camX, toY = 8.0f - camY, toZ = 8.0f - camZ;
@@ -230,25 +234,39 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             wireframe = !wireframe;
             glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
         }
-        prevR = curR; prevF = curF;
+        if (curF3 && !prevF3) {
+            showDebug = !showDebug;
+        }
+        prevR = curR; prevF = curF; prevF3 = curF3;
 
-        // Raycast and edit
-        // Q = remove, E = add (edge-triggered)
-        bool pressQ = curQ && !prevQ;
-        bool pressE = curE && !prevE;
-        prevQ = curQ; prevE = curE;
+        // Raycast and edit (mouse buttons)
+        bool pressL = curML && !prevML;
+        bool pressR = curMR && !prevMR;
+        prevML = curML; prevMR = curMR; prevQ = curQ; prevE = curE;
         RayHit hit = raycastVoxel(chunk, camX, camY, camZ, fwdX, fwdY, fwdZ, 100.0f);
-        if (pressQ || pressE) {
-            if (pressQ && hit.hit) {
+        if (pressL || pressR) {
+            if (pressL && hit.hit) {
                 int nonAir = 0;
                 for (int z=0; z<chunk.sizeZ(); ++z) for (int y=0; y<chunk.sizeY(); ++y) for (int x=0; x<chunk.sizeX(); ++x) if (chunk.at(x,y,z).type!=voxel::BlockType::Air) ++nonAir;
                 // Protect world origin block (0,0,0) from deletion
-                if (nonAir > 1 && !(hit.x==0 && hit.y==0 && hit.z==0)) { chunk.at(hit.x,hit.y,hit.z).type = voxel::BlockType::Air; mesh = mesher.buildMesh(chunk); }
-            } else if (pressE) {
+                if (nonAir > 1 && !(hit.x==0 && hit.y==0 && hit.z==0)) {
+                    chunk.at(hit.x,hit.y,hit.z).type = voxel::BlockType::Air;
+                    mesh = mesher.buildMesh(chunk);
+                    int cx = 0, cz = 0;
+                    core::log(core::LogLevel::Info, "Break block at (" + std::to_string(hit.x) + "," + std::to_string(hit.y) + "," + std::to_string(hit.z) + ") in chunk (" + std::to_string(cx) + "," + std::to_string(cz) + ")");
+                }
+            } else if (pressR) {
                 int px,py,pz;
                 if (hit.hit) { px = hit.x + hit.nx; py = hit.y + hit.ny; pz = hit.z + hit.nz; }
                 else { float t = 4.0f; px = (int)std::floor(camX + fwdX*t); py = (int)std::floor(camY + fwdY*t); pz = (int)std::floor(camZ + fwdZ*t); }
-                if (px>=0&&py>=0&&pz>=0&&px<chunk.sizeX()&&py<chunk.sizeY()&&pz<chunk.sizeZ()) { chunk.at(px,py,pz).type = voxel::BlockType::Dirt; mesh = mesher.buildMesh(chunk); }
+                if (px>=0&&py>=0&&pz>=0&&px<chunk.sizeX()&&py<chunk.sizeY()&&pz<chunk.sizeZ()) {
+                    chunk.at(px,py,pz).type = voxel::BlockType::Dirt;
+                    mesh = mesher.buildMesh(chunk);
+                    int cx = 0, cz = 0;
+                    core::log(core::LogLevel::Info, "Place block at (" + std::to_string(px) + "," + std::to_string(py) + "," + std::to_string(pz) + ") in chunk (" + std::to_string(cx) + "," + std::to_string(cz) + ")");
+                } else {
+                    core::log(core::LogLevel::Warn, "Placement out of chunk bounds");
+                }
             }
         }
 
@@ -259,6 +277,23 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             if (px>=0&&py>=0&&pz>=0&&px<chunk.sizeX()&&py<chunk.sizeY()&&pz<chunk.sizeZ()) {
                 drawWireCube(px, py, pz, 0.2f, 1.0f, 0.2f);
             }
+        }
+
+        // F3: update window title with camera/target info
+        if (showDebug) {
+            char title[256];
+            std::snprintf(title, sizeof(title), "Voxel Demo | cam(%.2f,%.2f,%.2f) look(%.2f,%.2f,%.2f)", camX, camY, camZ, fwdX, fwdY, fwdZ);
+            if (hit.hit) {
+                char buf2[96];
+                std::snprintf(buf2, sizeof(buf2), " | hit(%d,%d,%d)", hit.x, hit.y, hit.z);
+                size_t len = std::strlen(title);
+                size_t avail = sizeof(title) - 1 - len;
+                std::strncpy(title + len, buf2, avail);
+                title[len + avail] = '\0';
+            }
+            glfwSetWindowTitle(window, title);
+        } else {
+            glfwSetWindowTitle(window, "Voxel Demo");
         }
 
         // Draw HUD crosshair and present

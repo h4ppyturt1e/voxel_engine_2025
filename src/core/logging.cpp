@@ -47,6 +47,7 @@ void ConsoleSink::write(LogLevel level, const std::string& message) {
 	std::lock_guard<std::mutex> lock(g_mutex);
 	std::ostream& out = level == LogLevel::Error ? std::cerr : std::cout;
 	out << '[' << timestampNow() << "] [" << toCString(level) << "] " << message << '\n';
+	out.flush();
 }
 
 FileSink::FileSink(const std::string& filePath) : path_(filePath) {}

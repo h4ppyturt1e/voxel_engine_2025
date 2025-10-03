@@ -6,6 +6,10 @@
 #include "../voxel/world_manager.hpp"
 #include "../mesh/greedy_mesher.hpp"
 #include "../render/gl_app.hpp"
+#include <filesystem>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 
 int main() {
     // Configure logging from config (try cwd and parent)
@@ -20,6 +24,36 @@ int main() {
     else if (logcfg.level == "error") core::setLogLevel(core::LogLevel::Error);
     if (!logcfg.filePath.empty()) {
         core::Logger::instance().addSink(std::make_shared<core::FileSink>(logcfg.filePath));
+    } else {
+        // Default rotating logs under logs/ with timestamped filename, keep latest 50
+        try {
+            std::filesystem::create_directories("logs");
+            // rotate: delete oldest beyond 50
+            std::vector<std::filesystem::directory_entry> entries;
+            for (auto& e : std::filesystem::directory_iterator("logs")) {
+                if (e.is_regular_file()) entries.push_back(e);
+            }
+            std::sort(entries.begin(), entries.end(), [](auto& a, auto& b){
+                return std::filesystem::last_write_time(a) > std::filesystem::last_write_time(b);
+            });
+            for (size_t i = 50; i < entries.size(); ++i) {
+                std::error_code ec; std::filesystem::remove(entries[i].path(), ec);
+            }
+            // new filename
+            auto now = std::chrono::system_clock::now();
+            std::time_t t = std::chrono::system_clock::to_time_t(now);
+            std::tm tm{};
+#if defined(_WIN32)
+            localtime_s(&tm, &t);
+#else
+            localtime_r(&t, &tm);
+#endif
+            std::ostringstream name;
+            name << "logs/engine_" << std::put_time(&tm, "%Y%m%d_%H%M%S") << ".log";
+            core::Logger::instance().addSink(std::make_shared<core::FileSink>(name.str()));
+        } catch (...) {
+            // ignore rotation errors
+        }
     }
 
     core::log(core::LogLevel::Info, "Voxel Engine 2025 starting up...");
