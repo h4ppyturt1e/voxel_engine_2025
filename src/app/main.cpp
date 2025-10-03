@@ -5,6 +5,7 @@
 #include "../voxel/world.hpp"
 #include "../voxel/world_manager.hpp"
 #include "../mesh/greedy_mesher.hpp"
+#include "../render/gl_app.hpp"
 
 int main() {
     // Configure logging from config (try cwd and parent)
@@ -35,10 +36,15 @@ int main() {
     voxel::WorldManager wm(world);
     wm.setViewDistance(2);
     wm.updatePlayerPosition(0.0f, 0.0f, 0.0f);
-    voxel::Voxel v; v.type = voxel::BlockType::Dirt;
-    wm.setVoxel(0,0,0,v);
-
     voxel::Chunk& c = world.getOrCreateChunk(0, 0);
+    voxel::Voxel v; v.type = voxel::BlockType::Dirt;
+    for (int z = 0; z < 4; ++z) {
+        for (int y = 0; y < 4; ++y) {
+            for (int x = 0; x < 4; ++x) {
+                c.at(x, y, z) = v;
+            }
+        }
+    }
     c.saveToFile("chunk_0_0.vxl");
     core::log(core::LogLevel::Info, "Saved chunk to chunk_0_0.vxl");
 
@@ -46,6 +52,10 @@ int main() {
     mesh::GreedyMesher gm;
     mesh::Mesh m = gm.buildMesh(c);
     core::log(core::LogLevel::Info, "Mesh: vertices=" + std::to_string(m.vertices.size()) + ", indices=" + std::to_string(m.indices.size()));
+
+#ifdef VOXEL_WITH_GL
+    render::run_demo(m);
+#endif
 
 	core::log(core::LogLevel::Info, "Shutdown.");
 	return 0;

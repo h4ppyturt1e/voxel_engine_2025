@@ -3,6 +3,10 @@
 #include <iostream>
 #include <fstream>
 #include <mutex>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 namespace core {
 
@@ -22,10 +26,27 @@ static const char* toCString(LogLevel level) {
 	return "?";
 }
 
+static std::string timestampNow() {
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    auto t = system_clock::to_time_t(now);
+    auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+    std::tm tm{};
+#if defined(_WIN32)
+    localtime_s(&tm, &t);
+#else
+    localtime_r(&t, &tm);
+#endif
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << '.'
+        << std::setfill('0') << std::setw(3) << ms.count();
+    return oss.str();
+}
+
 void ConsoleSink::write(LogLevel level, const std::string& message) {
 	std::lock_guard<std::mutex> lock(g_mutex);
 	std::ostream& out = level == LogLevel::Error ? std::cerr : std::cout;
-	out << '[' << toCString(level) << "] " << message << '\n';
+	out << '[' << timestampNow() << "] [" << toCString(level) << "] " << message << '\n';
 }
 
 FileSink::FileSink(const std::string& filePath) : path_(filePath) {}
@@ -34,7 +55,7 @@ void FileSink::write(LogLevel level, const std::string& message) {
 	std::lock_guard<std::mutex> lock(g_mutex);
 	std::ofstream file(path_, std::ios::app);
 	if (!file) return;
-	file << '[' << toCString(level) << "] " << message << '\n';
+	file << '[' << timestampNow() << "] [" << toCString(level) << "] " << message << '\n';
 }
 
 Logger& Logger::instance() {

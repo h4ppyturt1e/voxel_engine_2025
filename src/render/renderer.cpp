@@ -15,6 +15,11 @@ void Renderer::shutdown() {
 	core::log(core::LogLevel::Info, "Renderer shutdown (stub)");
 }
 
+void Renderer::setViewProj(const core::Mat4& view, const core::Mat4& proj) {
+    view_ = view;
+    proj_ = proj;
+}
+
 } // namespace render
 
 
