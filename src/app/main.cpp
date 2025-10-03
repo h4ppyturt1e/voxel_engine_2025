@@ -54,7 +54,10 @@ int main() {
     core::log(core::LogLevel::Info, "Mesh: vertices=" + std::to_string(m.vertices.size()) + ", indices=" + std::to_string(m.indices.size()));
 
 #ifdef VOXEL_WITH_GL
+    core::log(core::LogLevel::Info, "GL demo: enabled (opening window)...");
     render::run_demo(m);
+#else
+    core::log(core::LogLevel::Info, "GL demo: disabled (VOXEL_WITH_GL=OFF)");
 #endif
 
 	core::log(core::LogLevel::Info, "Shutdown.");
