@@ -17,6 +17,7 @@ class World {
 public:
 	Chunk& getOrCreateChunk(int cx, int cz);
 	bool hasChunk(int cx, int cz) const;
+    bool unloadChunk(int cx, int cz);
 
 private:
 	std::unordered_map<std::pair<int,int>, Chunk, ChunkCoordHash> chunks_;
