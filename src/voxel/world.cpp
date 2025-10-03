@@ -1,4 +1,5 @@
 #include "world.hpp"
+#include "../config/config.hpp"
 
 namespace voxel {
 
@@ -6,7 +7,8 @@ Chunk& World::getOrCreateChunk(int cx, int cz) {
 	auto key = std::make_pair(cx, cz);
 	auto it = chunks_.find(key);
 	if (it == chunks_.end()) {
-		it = chunks_.emplace(key, Chunk{}).first;
+		const auto& dims = config::Config::instance().chunk();
+		it = chunks_.emplace(key, Chunk{dims.sizeX, dims.sizeY, dims.sizeZ}).first;
 	}
 	return it->second;
 }

@@ -17,6 +17,7 @@ else()
 endif()
 
 add_subdirectory(src/core)
+add_subdirectory(src/config)
 add_subdirectory(src/voxel)
 add_subdirectory(src/mesh)
 add_subdirectory(src/render)

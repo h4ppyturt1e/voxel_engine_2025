@@ -1,27 +1,33 @@
 #pragma once
 
-#include <array>
 #include <cstdint>
+#include <vector>
 #include "voxel.hpp"
 
 namespace voxel {
 
-constexpr int CHUNK_SIZE_X = 16;
-constexpr int CHUNK_SIZE_Y = 256;
-constexpr int CHUNK_SIZE_Z = 16;
-
 class Chunk {
 public:
-	Chunk();
+    Chunk(int sizeX, int sizeY, int sizeZ);
 
-	Voxel& at(int x, int y, int z);
-	const Voxel& at(int x, int y, int z) const;
+    int sizeX() const { return sizeX_; }
+    int sizeY() const { return sizeY_; }
+    int sizeZ() const { return sizeZ_; }
+
+    Voxel& at(int x, int y, int z);
+    const Voxel& at(int x, int y, int z) const;
+
+    bool saveToFile(const char* path) const;
+    bool loadFromFile(const char* path);
 
 private:
-	std::array<Voxel, CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z> voxels_{};
-	static constexpr int index(int x, int y, int z) {
-		return (y * CHUNK_SIZE_Z + z) * CHUNK_SIZE_X + x;
-	}
+    int sizeX_;
+    int sizeY_;
+    int sizeZ_;
+    std::vector<Voxel> voxels_;
+    int index(int x, int y, int z) const {
+        return (y * sizeZ_ + z) * sizeX_ + x;
+    }
 };
 
 } // namespace voxel

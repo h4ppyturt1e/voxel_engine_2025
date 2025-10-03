@@ -4,6 +4,7 @@ add_executable(voxel_app
 
 target_link_libraries(voxel_app PRIVATE
     core
+    config
     voxel
     mesh
     render
