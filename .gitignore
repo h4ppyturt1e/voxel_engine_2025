@@ -1,0 +1,20 @@
+# Build
+/build/
+/out/
+CTestTestfile.cmake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+bin/
+
+# IDE
+.vscode/
+.idea/
+*.user
+
+# OS
+Thumbs.db
+.DS_Store
+
+
