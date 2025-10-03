@@ -4,6 +4,7 @@
 #include "../config/config.hpp"
 #include "../voxel/world.hpp"
 #include "../voxel/world_manager.hpp"
+#include "../mesh/greedy_mesher.hpp"
 
 int main() {
     // Configure logging from config (try cwd and parent)
@@ -40,6 +41,11 @@ int main() {
     voxel::Chunk& c = world.getOrCreateChunk(0, 0);
     c.saveToFile("chunk_0_0.vxl");
     core::log(core::LogLevel::Info, "Saved chunk to chunk_0_0.vxl");
+
+    // Build mesh for this chunk
+    mesh::GreedyMesher gm;
+    mesh::Mesh m = gm.buildMesh(c);
+    core::log(core::LogLevel::Info, "Mesh: vertices=" + std::to_string(m.vertices.size()) + ", indices=" + std::to_string(m.indices.size()));
 
 	core::log(core::LogLevel::Info, "Shutdown.");
 	return 0;
