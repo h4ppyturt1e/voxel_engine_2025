@@ -5,7 +5,6 @@
 
 namespace input {
 
-enum class KeyState { Up, Down };
 
 enum class InputContext {
     Game,

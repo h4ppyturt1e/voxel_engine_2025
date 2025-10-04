@@ -1,10 +1,8 @@
 add_library(render STATIC
-    renderer.hpp
-    pipeline.hpp
-    renderer.cpp
-    pipeline.cpp
     gl_app.cpp
     gl_app.hpp
+    raycast.cpp
+    raycast.hpp
 )
 
 target_include_directories(render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

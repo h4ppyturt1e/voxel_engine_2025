@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace input {
 
 // Key name to GLFW key code mapping

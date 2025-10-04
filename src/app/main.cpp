@@ -22,7 +22,8 @@ int main() {
     
     // Ensure engine config exists
     if (!configManager.ensureConfigExists("engine.ini")) {
-        std::cerr << "Failed to ensure engine.ini exists" << std::endl;
+        std::string configPath = std::filesystem::absolute(configManager.getConfigPath("engine.ini")).string();
+        std::cerr << "Failed to ensure engine config exists at: " << configPath << std::endl;
         return -1;
     }
     
@@ -70,8 +71,9 @@ int main() {
     core::log(core::LogLevel::Info, "Voxel Engine 2025 starting up...");
     core::log(core::LogLevel::Info, "Initializing subsystems (voxel, mesh, render, camera, input)...");
 
-	if (!cfgOk) {
-		core::log(core::LogLevel::Warn, "Failed to load engine.ini, using defaults.");
+    if (!cfgOk) {
+		std::string configPath = std::filesystem::absolute(configManager.getConfigPath("engine.ini")).string();
+		core::log(core::LogLevel::Warn, "Failed to load " + configPath + ", using defaults.");
 	}
 	const auto& dims = config::Config::instance().chunk();
 	core::log(core::LogLevel::Info, "Chunk dims: " + std::to_string(dims.sizeX) + "x" + std::to_string(dims.sizeY) + "x" + std::to_string(dims.sizeZ));
@@ -91,7 +93,8 @@ int main() {
         }
     }
     c.saveToFile("chunk_0_0.vxl");
-    core::log(core::LogLevel::Info, "Saved chunk to chunk_0_0.vxl");
+    std::string chunkPath = std::filesystem::absolute("chunk_0_0.vxl").string();
+    core::log(core::LogLevel::Info, "Saved chunk to " + chunkPath);
 
     // Build mesh for this chunk
     mesh::GreedyMesher gm;
