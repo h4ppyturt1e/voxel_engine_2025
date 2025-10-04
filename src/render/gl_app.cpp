@@ -199,10 +199,16 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
     auto startTime = std::chrono::steady_clock::now();
     auto lastFpsTime = startTime;
     auto lastTitleTime = startTime;
+    auto lastFrameTime = std::chrono::high_resolution_clock::now();
     int frameCount = 0;
     double fps = 0.0;
 
     while (!glfwWindowShouldClose(window)) {
+        // Calculate delta time
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float>(currentTime - lastFrameTime).count();
+        lastFrameTime = currentTime;
+        
         // input
         // Escape key disabled - use Alt+F4 or close button to exit
         // Mouse look: always track mouse delta
@@ -215,7 +221,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             if (pitch < -1.5f) pitch = -1.5f;
             if (pitch > 1.5f)  pitch = 1.5f;
         }
-        float moveSpeed = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) ? 0.6f : 0.2f;
+        float moveSpeed = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) ? 6.0f : 2.0f;
+        moveSpeed *= deltaTime; // Apply delta time
         // compute facing vectors from yaw/pitch
         float cp = std::cos(pitch), sp = std::sin(pitch);
         float cy = std::cos(yaw),   sy = std::sin(yaw);
