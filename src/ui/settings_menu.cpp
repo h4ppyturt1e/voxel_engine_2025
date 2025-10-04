@@ -24,9 +24,9 @@ void SettingsMenu::render() {
     
 #ifdef VOXEL_WITH_GL
     // Create a centered modal window
-    ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_Always);
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImGui::SetNextWindowPos(center, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     
     if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         

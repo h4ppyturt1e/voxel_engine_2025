@@ -186,19 +186,22 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         // Update InputManager
         inputManager.update();
         
-        // Mouse look: always track mouse delta
+        // Mouse look: only track mouse delta if no modal UI is active
+        bool isPaused = uiManager.shouldBlockInput();
         {
             double x, y; glfwGetCursorPos(window, &x, &y);
             if (!haveLast) { lastX = x; lastY = y; haveLast = true; }
             double dx = x - lastX, dy = y - lastY; lastX = x; lastY = y;
             inputManager.setMouseDelta(static_cast<float>(dx), static_cast<float>(dy));
             
-            float mouseDeltaX, mouseDeltaY;
-            inputManager.getMouseDelta(mouseDeltaX, mouseDeltaY);
-            yaw   += mouseDeltaX;
-            pitch -= mouseDeltaY; // inverted mouse Y
-            if (pitch < -1.5f) pitch = -1.5f;
-            if (pitch > 1.5f)  pitch = 1.5f;
+            if (!isPaused) {
+                float mouseDeltaX, mouseDeltaY;
+                inputManager.getMouseDelta(mouseDeltaX, mouseDeltaY);
+                yaw   += mouseDeltaX;
+                pitch -= mouseDeltaY; // inverted mouse Y
+                if (pitch < -1.5f) pitch = -1.5f;
+                if (pitch > 1.5f)  pitch = 1.5f;
+            }
         }
         float moveSpeed = inputManager.isActionPressed(input::Action::FastMovement) ? 36.0f : 12.0f;
         moveSpeed *= deltaTime; // Apply delta time
@@ -212,13 +215,15 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         // right is horizontal strafe
         float rightX = -sy;
         float rightZ =  cy;
-        // WASD free-fly movement in facing direction
-        if (inputManager.isActionPressed(input::Action::MoveForward)) { camX += fwdX * moveSpeed; camY += fwdY * moveSpeed; camZ += fwdZ * moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveBackward)) { camX -= fwdX * moveSpeed; camY -= fwdY * moveSpeed; camZ -= fwdZ * moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveLeft)) { camX -= rightX * moveSpeed;                         camZ -= rightZ * moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveRight)) { camX += rightX * moveSpeed;                         camZ += rightZ * moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveUp)) { camY += moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveDown)) { camY -= moveSpeed; }
+        // WASD free-fly movement in facing direction (only if not paused)
+        if (!isPaused) {
+            if (inputManager.isActionPressed(input::Action::MoveForward)) { camX += fwdX * moveSpeed; camY += fwdY * moveSpeed; camZ += fwdZ * moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveBackward)) { camX -= fwdX * moveSpeed; camY -= fwdY * moveSpeed; camZ -= fwdZ * moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveLeft)) { camX -= rightX * moveSpeed;                         camZ -= rightZ * moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveRight)) { camX += rightX * moveSpeed;                         camZ += rightZ * moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveUp)) { camY += moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveDown)) { camY -= moveSpeed; }
+        }
         // Note: Q/E no longer dolly; they are used for edit actions below
 		int w,h; glfwGetFramebufferSize(window, &w, &h);
 		glViewport(0,0,w,h);
@@ -298,12 +303,12 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         }
         prevR = curR; prevF = curF; prevF3 = curF3; prevF4 = curF4; prevF5 = curF5; prevESC = curESC;
 
-        // Raycast and edit (mouse buttons)
+        // Raycast and edit (mouse buttons) - only if not paused
         bool pressL = curML && !prevML;
         bool pressR = curMR && !prevMR;
         prevML = curML; prevMR = curMR; prevQ = curQ; prevE = curE;
         RayHit hit = raycastVoxel(chunk, camX, camY, camZ, fwdX, fwdY, fwdZ, 100.0f);
-        if (pressL || pressR) {
+        if ((pressL || pressR) && !isPaused) {
             if (pressL && hit.hit) {
                 int nonAir = 0;
                 for (int z=0; z<chunk.sizeZ(); ++z) for (int y=0; y<chunk.sizeY(); ++y) for (int x=0; x<chunk.sizeX(); ++x) if (chunk.at(x,y,z).type!=voxel::BlockType::Air) ++nonAir;
