@@ -6,8 +6,11 @@
 #include "../core/logging.hpp"
 #include "../core/math.hpp"
 #include "../config/config.hpp"
+#include "../input/input_manager.hpp"
+#include "../config/config_manager.hpp"
 #include <cmath>
 #include <cstring>
+#include <iostream>
 #include "../voxel/world.hpp"
 #include "../mesh/greedy_mesher.hpp"
 #include <filesystem>
@@ -164,6 +167,33 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 	}
 	glfwMakeContextCurrent(window);
     
+    // Initialize ConfigManager
+    config::ConfigManager& configManager = config::ConfigManager::instance();
+    if (!configManager.initialize()) {
+        std::cerr << "Failed to initialize ConfigManager" << std::endl;
+        return -1;
+    }
+    
+    // Ensure input config exists
+    if (!configManager.ensureConfigExists("input.ini")) {
+        std::cerr << "Failed to ensure input.ini exists" << std::endl;
+        return -1;
+    }
+    
+    // Initialize InputManager
+    input::InputManager& inputManager = input::InputManager::instance();
+    inputManager.initialize();
+    inputManager.loadConfig(configManager.getConfigPath("input.ini"));
+    
+    // Set up GLFW callbacks
+    glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        input::InputManager::instance().setKeyState(key, action == GLFW_PRESS || action == GLFW_REPEAT);
+    });
+    
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods) {
+        input::InputManager::instance().setKeyState(button, action == GLFW_PRESS);
+    });
+    
     // Load VSync setting from config
     bool vsyncEnabled = config::Config::instance().graphics().vsync;
     glfwSwapInterval(vsyncEnabled ? 1 : 0);
@@ -199,23 +229,35 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
     auto startTime = std::chrono::steady_clock::now();
     auto lastFpsTime = startTime;
     auto lastTitleTime = startTime;
+    auto lastFrameTime = std::chrono::high_resolution_clock::now();
     int frameCount = 0;
     double fps = 0.0;
 
     while (!glfwWindowShouldClose(window)) {
-        // input
-        // Escape key disabled - use Alt+F4 or close button to exit
+        // Calculate delta time
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float>(currentTime - lastFrameTime).count();
+        lastFrameTime = currentTime;
+        
+        // Update InputManager
+        inputManager.update();
+        
         // Mouse look: always track mouse delta
         {
             double x, y; glfwGetCursorPos(window, &x, &y);
             if (!haveLast) { lastX = x; lastY = y; haveLast = true; }
             double dx = x - lastX, dy = y - lastY; lastX = x; lastY = y;
-            yaw   += static_cast<float>(dx) * 0.01f;
-            pitch -= static_cast<float>(dy) * 0.01f; // inverted mouse Y
+            inputManager.setMouseDelta(static_cast<float>(dx), static_cast<float>(dy));
+            
+            float mouseDeltaX, mouseDeltaY;
+            inputManager.getMouseDelta(mouseDeltaX, mouseDeltaY);
+            yaw   += mouseDeltaX;
+            pitch -= mouseDeltaY; // inverted mouse Y
             if (pitch < -1.5f) pitch = -1.5f;
             if (pitch > 1.5f)  pitch = 1.5f;
         }
-        float moveSpeed = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) ? 0.6f : 0.2f;
+        float moveSpeed = inputManager.isActionPressed(input::Action::FastMovement) ? 6.0f : 2.0f;
+        moveSpeed *= deltaTime; // Apply delta time
         // compute facing vectors from yaw/pitch
         float cp = std::cos(pitch), sp = std::sin(pitch);
         float cy = std::cos(yaw),   sy = std::sin(yaw);
@@ -227,10 +269,12 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         float rightX = -sy;
         float rightZ =  cy;
         // WASD free-fly movement in facing direction
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { camX += fwdX * moveSpeed; camY += fwdY * moveSpeed; camZ += fwdZ * moveSpeed; }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) { camX -= fwdX * moveSpeed; camY -= fwdY * moveSpeed; camZ -= fwdZ * moveSpeed; }
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) { camX -= rightX * moveSpeed;                         camZ -= rightZ * moveSpeed; }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) { camX += rightX * moveSpeed;                         camZ += rightZ * moveSpeed; }
+        if (inputManager.isActionPressed(input::Action::MoveForward)) { camX += fwdX * moveSpeed; camY += fwdY * moveSpeed; camZ += fwdZ * moveSpeed; }
+        if (inputManager.isActionPressed(input::Action::MoveBackward)) { camX -= fwdX * moveSpeed; camY -= fwdY * moveSpeed; camZ -= fwdZ * moveSpeed; }
+        if (inputManager.isActionPressed(input::Action::MoveLeft)) { camX -= rightX * moveSpeed;                         camZ -= rightZ * moveSpeed; }
+        if (inputManager.isActionPressed(input::Action::MoveRight)) { camX += rightX * moveSpeed;                         camZ += rightZ * moveSpeed; }
+        if (inputManager.isActionPressed(input::Action::MoveUp)) { camY += moveSpeed; }
+        if (inputManager.isActionPressed(input::Action::MoveDown)) { camY -= moveSpeed; }
         // Note: Q/E no longer dolly; they are used for edit actions below
 		int w,h; glfwGetFramebufferSize(window, &w, &h);
 		glViewport(0,0,w,h);
@@ -270,15 +314,15 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 
         // Keyboard: recenter (R) to world origin view
         static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevF4 = false, prevF5 = false, prevML=false, prevMR=false;
-        bool curR = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
-        bool curF = glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS;
-        bool curQ = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
+        bool curR = inputManager.isActionPressed(input::Action::RecenterCamera);
+        bool curF = inputManager.isActionPressed(input::Action::ToggleWireframe);
+        bool curQ = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS; // Keep Q/E for now
         bool curE = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
-        bool curF3 = glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS;
-        bool curF4 = glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS;
-        bool curF5 = glfwGetKey(window, GLFW_KEY_F5) == GLFW_PRESS;
-        bool curML = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-        bool curMR = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+        bool curF3 = inputManager.isActionPressed(input::Action::ToggleDebug);
+        bool curF4 = inputManager.isActionPressed(input::Action::ToggleMouseLock);
+        bool curF5 = inputManager.isActionPressed(input::Action::ToggleVSync);
+        bool curML = inputManager.isActionPressed(input::Action::BreakBlock);
+        bool curMR = inputManager.isActionPressed(input::Action::PlaceBlock);
         if (curR && !prevR) {
             camX = 8.0f; camY = 10.0f; camZ = 28.0f;
             float toX = 8.0f - camX, toY = 8.0f - camY, toZ = 8.0f - camZ;

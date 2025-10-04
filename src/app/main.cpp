@@ -2,6 +2,7 @@
 
 #include "../core/logging.hpp"
 #include "../config/config.hpp"
+#include "../config/config_manager.hpp"
 #include "../voxel/world.hpp"
 #include "../voxel/world_manager.hpp"
 #include "../mesh/greedy_mesher.hpp"
@@ -12,11 +13,21 @@
 #include <sstream>
 
 int main() {
-    // Configure logging from config (try cwd and parent)
-    bool cfgOk = config::Config::instance().loadFromFile("engine.ini");
-    if (!cfgOk) {
-        cfgOk = config::Config::instance().loadFromFile("../engine.ini");
+    // Initialize ConfigManager
+    config::ConfigManager& configManager = config::ConfigManager::instance();
+    if (!configManager.initialize()) {
+        std::cerr << "Failed to initialize ConfigManager" << std::endl;
+        return -1;
     }
+    
+    // Ensure engine config exists
+    if (!configManager.ensureConfigExists("engine.ini")) {
+        std::cerr << "Failed to ensure engine.ini exists" << std::endl;
+        return -1;
+    }
+    
+    // Configure logging from config
+    bool cfgOk = config::Config::instance().loadFromFile(configManager.getConfigPath("engine.ini"));
     const auto& logcfg = config::Config::instance().logging();
     if (logcfg.level == "debug") core::setLogLevel(core::LogLevel::Debug);
     else if (logcfg.level == "info") core::setLogLevel(core::LogLevel::Info);
