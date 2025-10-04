@@ -152,6 +152,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		writeRunError(std::string("GLFW init failed. DISPLAY=") + d + ", ensure X server is running.");
 		return -1;
 	}
+	
 	GLFWwindow* window = glfwCreateWindow(800, 600, "Voxel Demo", nullptr, nullptr);
 	if (!window) {
 		const char* disp = std::getenv("DISPLAY");
