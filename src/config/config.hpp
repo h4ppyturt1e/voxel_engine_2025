@@ -27,14 +27,36 @@ public:
 
 	struct Graphics {
 		bool vsync {true};
+		int resolution_width {800};
+		int resolution_height {600};
+		std::string quality {"medium"};
 	};
 	
 	const Graphics& graphics() const { return graphics_; }
+
+	struct UI {
+		float mouse_sensitivity {0.01f};
+		std::string theme {"dark"};
+		float scale {1.0f};
+	};
+
+	const UI& ui() const { return ui_; }
+
+	struct Audio {
+		float master_volume {1.0f};
+		float sfx_volume {1.0f};
+		float music_volume {1.0f};
+		std::string device {"default"};
+	};
+
+	const Audio& audio() const { return audio_; }
 
 private:
 	ChunkDimensions chunk_{};
 	Logging logging_{};
 	Graphics graphics_{};
+	UI ui_{};
+	Audio audio_{};
 };
 
 } // namespace config

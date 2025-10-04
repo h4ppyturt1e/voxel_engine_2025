@@ -35,6 +35,16 @@ bool Config::loadFromFile(const std::string& path) {
 		else if (key == "log.level") logging_.level = val;
 		else if (key == "log.file") logging_.filePath = val;
 		else if (key == "vsync") graphics_.vsync = (val == "true" || val == "1");
+		else if (key == "graphics.resolution_width") graphics_.resolution_width = std::stoi(val);
+		else if (key == "graphics.resolution_height") graphics_.resolution_height = std::stoi(val);
+		else if (key == "graphics.quality") graphics_.quality = val;
+		else if (key == "ui.mouse_sensitivity") ui_.mouse_sensitivity = std::stof(val);
+		else if (key == "ui.theme") ui_.theme = val;
+		else if (key == "ui.scale") ui_.scale = std::stof(val);
+		else if (key == "audio.master_volume") audio_.master_volume = std::stof(val);
+		else if (key == "audio.sfx_volume") audio_.sfx_volume = std::stof(val);
+		else if (key == "audio.music_volume") audio_.music_volume = std::stof(val);
+		else if (key == "audio.device") audio_.device = val;
 	}
 	return true;
 }
