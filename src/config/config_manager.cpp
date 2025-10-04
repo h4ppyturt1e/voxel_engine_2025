@@ -58,13 +58,16 @@ bool ConfigManager::copyDefaultConfig(const std::string& configName) const {
     try {
         // Check if default config exists
         if (!std::filesystem::exists(defaultPath)) {
-            std::cerr << "Default config not found: " << defaultPath << std::endl;
+            std::string absDefaultPath = std::filesystem::absolute(defaultPath).string();
+            std::cerr << "Default config not found: " << absDefaultPath << std::endl;
             return false;
         }
         
         // Copy default to runtime location
         std::filesystem::copy_file(defaultPath, runtimePath);
-        std::cout << "Copied default config: " << defaultPath << " -> " << runtimePath << std::endl;
+        std::string absDefaultPath = std::filesystem::absolute(defaultPath).string();
+        std::string absRuntimePath = std::filesystem::absolute(runtimePath).string();
+        std::cout << "Copied default config: " << absDefaultPath << " -> " << absRuntimePath << std::endl;
         return true;
         
     } catch (const std::exception& e) {

@@ -129,7 +129,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
     
     // Ensure input config exists
     if (!configManager.ensureConfigExists("input.ini")) {
-        std::cerr << "Failed to ensure input.ini exists" << std::endl;
+        std::string configPath = std::filesystem::absolute(configManager.getConfigPath("input.ini")).string();
+        std::cerr << "Failed to ensure input config exists at: " << configPath << std::endl;
         return -1;
     }
     
