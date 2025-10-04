@@ -210,7 +210,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             if (pitch < -1.5f) pitch = -1.5f;
             if (pitch > 1.5f)  pitch = 1.5f;
         }
-        float moveSpeed = inputManager.isActionPressed(input::Action::FastMovement) ? 6.0f : 2.0f;
+        float moveSpeed = inputManager.isActionPressed(input::Action::FastMovement) ? 36.0f : 12.0f;
         moveSpeed *= deltaTime; // Apply delta time
         // compute facing vectors from yaw/pitch
         float cp = std::cos(pitch), sp = std::sin(pitch);
