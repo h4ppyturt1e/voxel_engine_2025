@@ -81,6 +81,17 @@ void InputManager::update() {
 }
 
 bool InputManager::isActionPressed(Action action) const {
+    // Check context-specific mapping first
+    auto contextIt = contextMappings_.find(currentContext_);
+    if (contextIt != contextMappings_.end()) {
+        auto actionIt = contextIt->second.find(action);
+        if (actionIt != contextIt->second.end()) {
+            auto keyIt = keyStates_.find(actionIt->second);
+            return keyIt != keyStates_.end() && keyIt->second;
+        }
+    }
+    
+    // Fall back to default mapping
     auto it = actionToKey_.find(action);
     if (it == actionToKey_.end()) return false;
     auto keyIt = keyStates_.find(it->second);
@@ -88,18 +99,24 @@ bool InputManager::isActionPressed(Action action) const {
 }
 
 bool InputManager::isActionJustPressed(Action action) const {
-    auto it = actionToKey_.find(action);
-    if (it == actionToKey_.end()) return false;
-    int key = it->second;
+    int key = getKeyMappingForContext(currentContext_, action);
+    if (key == -1) {
+        auto it = actionToKey_.find(action);
+        if (it == actionToKey_.end()) return false;
+        key = it->second;
+    }
     bool current = keyStates_.find(key) != keyStates_.end() && keyStates_.at(key);
     bool previous = prevKeyStates_.find(key) != prevKeyStates_.end() && prevKeyStates_.at(key);
     return current && !previous;
 }
 
 bool InputManager::isActionJustReleased(Action action) const {
-    auto it = actionToKey_.find(action);
-    if (it == actionToKey_.end()) return false;
-    int key = it->second;
+    int key = getKeyMappingForContext(currentContext_, action);
+    if (key == -1) {
+        auto it = actionToKey_.find(action);
+        if (it == actionToKey_.end()) return false;
+        key = it->second;
+    }
     bool current = keyStates_.find(key) != keyStates_.end() && keyStates_.at(key);
     bool previous = prevKeyStates_.find(key) != prevKeyStates_.end() && prevKeyStates_.at(key);
     return !current && previous;
@@ -133,6 +150,30 @@ std::string InputManager::getActionName(Action action) const {
 
 void InputManager::resetToDefaults() {
     setupDefaultMappings();
+    setupContextMappings();
+}
+
+void InputManager::setContext(InputContext context) {
+    currentContext_ = context;
+}
+
+InputContext InputManager::getCurrentContext() const {
+    return currentContext_;
+}
+
+void InputManager::setKeyMappingForContext(InputContext context, Action action, int key) {
+    contextMappings_[context][action] = key;
+}
+
+int InputManager::getKeyMappingForContext(InputContext context, Action action) const {
+    auto contextIt = contextMappings_.find(context);
+    if (contextIt != contextMappings_.end()) {
+        auto actionIt = contextIt->second.find(action);
+        if (actionIt != contextIt->second.end()) {
+            return actionIt->second;
+        }
+    }
+    return -1;
 }
 
 void InputManager::setKeyState(int key, bool pressed) {
@@ -164,6 +205,17 @@ void InputManager::setupDefaultMappings() {
     actionToKey_[Action::RecenterCamera] = KEY_R;
     actionToKey_[Action::BreakBlock] = MOUSE_BUTTON_LEFT;
     actionToKey_[Action::PlaceBlock] = MOUSE_BUTTON_RIGHT;
+}
+
+void InputManager::setupContextMappings() {
+    // Game context - use default mappings
+    // Menu context - different mappings for navigation
+    contextMappings_[InputContext::Menu][Action::ToggleMenu] = KEY_ESCAPE;
+    contextMappings_[InputContext::Menu][Action::MoveUp] = KEY_UP;
+    contextMappings_[InputContext::Menu][Action::MoveDown] = KEY_DOWN;
+    contextMappings_[InputContext::Menu][Action::MoveLeft] = KEY_LEFT;
+    contextMappings_[InputContext::Menu][Action::MoveRight] = KEY_RIGHT;
+    contextMappings_[InputContext::Menu][Action::BreakBlock] = KEY_ENTER; // Select/confirm
 }
 
 std::string InputManager::actionToString(Action action) const {
