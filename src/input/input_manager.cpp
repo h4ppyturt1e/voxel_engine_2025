@@ -103,8 +103,6 @@ void InputManager::update() {
     }
     
     prevKeyStates_ = keyStates_;
-    mouseDeltaX_ = 0.0f;
-    mouseDeltaY_ = 0.0f;
 }
 
 bool InputManager::isActionPressed(Action action) const {
@@ -149,9 +147,12 @@ bool InputManager::isActionJustReleased(Action action) const {
     return !current && previous;
 }
 
-void InputManager::getMouseDelta(float& deltaX, float& deltaY) const {
+void InputManager::getMouseDelta(float& deltaX, float& deltaY) {
     deltaX = mouseDeltaX_;
     deltaY = mouseDeltaY_;
+    // Reset mouse delta after consuming it
+    mouseDeltaX_ = 0.0f;
+    mouseDeltaY_ = 0.0f;
 }
 
 void InputManager::setMouseSensitivity(float sensitivity) {

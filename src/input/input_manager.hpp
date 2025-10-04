@@ -34,7 +34,7 @@ public:
     bool isActionJustPressed(Action action) const;
     bool isActionJustReleased(Action action) const;
     
-    void getMouseDelta(float& deltaX, float& deltaY) const;
+    void getMouseDelta(float& deltaX, float& deltaY);
     void setMouseSensitivity(float sensitivity);
     float getMouseSensitivity() const;
     
