@@ -3,11 +3,15 @@
 #ifdef VOXEL_WITH_GL
 #include <GLFW/glfw3.h>
 #include <GL/gl.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include "../core/logging.hpp"
 #include "../core/math.hpp"
 #include "../config/config.hpp"
 #include "../input/input_manager.hpp"
 #include "../config/config_manager.hpp"
+#include "../ui/ui_manager.hpp"
 #include "raycast.hpp"
 #include <cmath>
 #include <cstring>
@@ -47,27 +51,6 @@ static void drawWireCube(int x, int y, int z, float r, float g, float b) {
     glEnable(GL_DEPTH_TEST);
 }
 
-static void drawCrosshair(int w, int h) {
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	glOrtho(0, w, h, 0, -1, 1);
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	glDisable(GL_DEPTH_TEST);
-	glBegin(GL_LINES);
-	glColor3f(1,1,1);
-	int cx = w/2, cy = h/2; int s = 8;
-	glVertex2i(cx - s, cy); glVertex2i(cx + s, cy);
-	glVertex2i(cx, cy - s); glVertex2i(cx, cy + s);
-	glEnd();
-	glEnable(GL_DEPTH_TEST);
-	glPopMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
-}
 
 static std::string nowTimestamp() {
     using namespace std::chrono;
@@ -153,6 +136,13 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
     glfwSwapInterval(vsyncEnabled ? 1 : 0);
 
     glEnable(GL_DEPTH_TEST);
+
+    // Initialize UI Manager
+    ui::UIManager& uiManager = ui::UIManager::instance();
+    if (!uiManager.initialize(window)) {
+        core::log(core::LogLevel::Error, "Failed to initialize UIManager");
+        return -1;
+    }
 
     // simple camera state
     double lastX = 0.0, lastY = 0.0; bool haveLast = false;
@@ -267,7 +257,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		glEnd();
 
         // Keyboard: recenter (R) to world origin view
-        static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevF4 = false, prevF5 = false, prevML=false, prevMR=false;
+        static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevF4 = false, prevF5 = false, prevML=false, prevMR=false, prevESC=false;
         bool curR = inputManager.isActionPressed(input::Action::RecenterCamera);
         bool curF = inputManager.isActionPressed(input::Action::ToggleWireframe);
         bool curQ = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS; // Keep Q/E for now
@@ -277,6 +267,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         bool curF5 = inputManager.isActionPressed(input::Action::ToggleVSync);
         bool curML = inputManager.isActionPressed(input::Action::BreakBlock);
         bool curMR = inputManager.isActionPressed(input::Action::PlaceBlock);
+        bool curESC = inputManager.isActionPressed(input::Action::ToggleMenu);
         if (curR && !prevR) {
             camX = 8.0f; camY = 10.0f; camZ = 28.0f;
             float toX = 8.0f - camX, toY = 8.0f - camY, toZ = 8.0f - camZ;
@@ -302,7 +293,10 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             glfwSwapInterval(currentVsync ? 1 : 0);
             core::log(core::LogLevel::Info, currentVsync ? "VSync enabled" : "VSync disabled");
         }
-        prevR = curR; prevF = curF; prevF3 = curF3; prevF4 = curF4; prevF5 = curF5;
+        if (curESC && !prevESC) {
+            uiManager.toggleOverlay(ui::OverlayType::Settings);
+        }
+        prevR = curR; prevF = curF; prevF3 = curF3; prevF4 = curF4; prevF5 = curF5; prevESC = curESC;
 
         // Raycast and edit (mouse buttons)
         bool pressL = curML && !prevML;
@@ -376,11 +370,17 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             lastTitleTime = now;
         }
 
-        // Draw HUD crosshair and present
-        drawCrosshair(w,h);
+        // UI rendering
+        uiManager.beginFrame(deltaTime);
+        uiManager.endFrame();
+        
+        // Present frame
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    // Cleanup UI Manager (includes ImGui cleanup)
+    uiManager.shutdown();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

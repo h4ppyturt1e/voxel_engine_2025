@@ -23,6 +23,7 @@ add_subdirectory(src/mesh)
 add_subdirectory(src/render)
 add_subdirectory(src/camera)
 add_subdirectory(src/input)
+add_subdirectory(src/ui)
 add_subdirectory(src/app)
 
 

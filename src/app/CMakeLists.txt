@@ -10,6 +10,7 @@ target_link_libraries(voxel_app PRIVATE
     render
     camera
     input
+    ui
 )
 
 target_compile_definitions(voxel_app PRIVATE
