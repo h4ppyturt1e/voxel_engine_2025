@@ -20,6 +20,8 @@ public:
     static InputManager& instance();
     
     bool initialize();
+    bool loadConfig(const std::string& configPath);
+    bool saveConfig(const std::string& configPath);
     void update();
     
     bool isActionPressed(Action action) const;
@@ -51,6 +53,9 @@ private:
     
     void setupDefaultMappings();
     std::string actionToString(Action action) const;
+    Action stringToAction(const std::string& str) const;
+    int keyNameToCode(const std::string& keyName) const;
+    std::string keyCodeToName(int keyCode) const;
 };
 
 } // namespace input
