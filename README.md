@@ -1,18 +1,23 @@
-## Voxel Engine 2025 (C++)
+# Voxel Engine 2025
 
-Lightweight voxel engine scaffold with:
-- Voxel storage and world partitioning
-- Mesh generation (visible faces; greedy meshing WIP)
-- Minimal OpenGL demo with camera and editing
-- Configurable logging with timestamps and rotating log files
+A modern, modular C++ voxel engine with clean architecture and configurable input system.
 
-## Quick Start (Windows - Recommended)
+## Features
 
-**Prerequisites:**
-- Visual Studio 2022 Community (install "Desktop development with C++" workload)
+- **Modular Architecture**: Clean separation between voxel, mesh, render, input, and config systems
+- **Action-Based Input**: Configurable key bindings with hot reload support
+- **Greedy Meshing**: Efficient mesh generation with face culling
+- **OpenGL Rendering**: Modern graphics pipeline with raycast-based block editing
+- **Configuration System**: Runtime config files with defaults and user overrides
+- **Comprehensive Logging**: Full file path logging with rotation and multiple levels
+
+## Quick Start
+
+### Prerequisites
+- Visual Studio 2022 Community (with "Desktop development with C++" workload)
 - CMake 3.16+
 
-**Build & Run:**
+### Build & Run
 ```cmd
 git clone <repo-url>
 cd voxel_engine_2025
@@ -21,6 +26,82 @@ cmake -G "Visual Studio 17 2022" -A x64 -DVOXEL_WITH_GL=ON ..
 cmake --build . --config Release
 .\bin\Release\voxel_app.exe
 ```
+
+## Architecture
+
+```
+src/
+├── app/           # Application entry point
+├── camera/        # Camera system and controls
+├── config/        # Configuration management
+├── core/          # Core utilities (logging, math)
+├── input/         # Input system with action mapping
+├── mesh/          # Mesh generation (greedy meshing)
+├── render/        # OpenGL rendering and raycast
+└── voxel/         # Voxel storage and world management
+```
+
+## Controls
+
+All controls are configurable via `input.ini`:
+
+### Movement
+- **W/A/S/D**: Move forward/left/backward/right
+- **Space/Ctrl**: Move up/down
+- **Shift**: Fast movement
+- **Mouse**: Look around
+
+### Block Editing
+- **Left Click**: Remove block
+- **Right Click**: Place block
+
+### Debug & Settings
+- **F**: Toggle wireframe
+- **F3**: Toggle debug overlay
+- **F4**: Toggle mouse lock
+- **F5**: Toggle VSync
+- **R**: Recenter camera
+- **Escape**: Toggle menu (planned)
+
+## Configuration
+
+### Runtime Config Files
+Config files are automatically copied to `build/bin/Release/config/` on first run:
+
+#### `engine.ini` - Engine Settings
+```ini
+# Chunk dimensions
+chunk.size_x=8
+chunk.size_y=8
+chunk.size_z=8
+
+# Logging
+log.level=debug
+log.file=logs/engine.log
+
+# Graphics
+vsync=false
+```
+
+#### `input.ini` - Input Bindings
+```ini
+[actions]
+MoveForward=W
+MoveBackward=S
+MoveLeft=A
+MoveRight=D
+MoveUp=SPACE
+MoveDown=CTRL
+FastMovement=SHIFT
+BreakBlock=MOUSE_LEFT
+PlaceBlock=MOUSE_RIGHT
+
+[settings]
+mouse_sensitivity=0.01
+```
+
+### Hot Reload
+Input bindings can be changed in `input.ini` and will be reloaded automatically without restarting the application.
 
 ## Build Options
 
@@ -32,101 +113,46 @@ cmake --build . --config Release
 .\bin\Release\voxel_app.exe
 ```
 
-### WSL/Linux (Alternative)
+### Linux/WSL
 ```bash
 mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DVOXEL_WITH_GL=ON ..
 cmake --build . --config Release
+./bin/voxel_app
 ```
 
-## Run (WSL + VcXsrv)
+## Logging
 
-1) Start VcXsrv (Multiple windows, Start no client, Disable access control, Disable Native OpenGL)
-2) In WSL:
-```bash
-export DISPLAY=:0.0
-export LIBGL_ALWAYS_INDIRECT=1
-./build/bin/voxel_app
+- **Console Output**: Real-time logs with timestamps
+- **File Logging**: Automatic rotation (keeps latest 50 files)
+- **Full Paths**: All file operations show absolute paths
+- **Levels**: Debug, Info, Warn, Error
+
+Example log output:
 ```
-If `:0.0` fails, use your Windows host IP for DISPLAY.
-
-## Controls
-
-- Mouse: look (inverted Y)
-- WASD: free-fly relative to facing
-- Left click: remove block (origin block protected)
-- Right click: place block on highlighted face
-- F: toggle wireframe
-- R: recenter camera to world origin
-- F3: toggle debug title (camera xyz, look vector, current hit voxel)
-- F4: toggle mouse lock (cursor capture for look controls)
-- F5: toggle VSync (vertical sync on/off)
-  - Title also shows an FPS counter (updates ~4x/second)
-
-## Config
-
-Edit `engine.ini` in project root:
-```ini
-# Voxel Engine 2025 Configuration
-chunk.size_x=8
-chunk.size_y=8
-chunk.size_z=8
-log.level=debug
-log.file=logs/engine.log
-
-[graphics]
-vsync=true
+[2025-10-04 02:27:11.602] [INFO] Saved chunk to C:\Users\ASUS\Documents\GitHub\voxel_engine_2025\build\bin\Release\chunk_0_0.vxl
 ```
 
-**Settings:**
-- `chunk.size_*`: Voxel chunk dimensions (default: 8x8x8)
-- `log.level`: Logging level (debug, info, warn, error)
-- `log.file`: Log file path (empty = auto-generated with rotation)
-- `vsync`: Enable/disable vertical sync (true/false)
+## Development
 
-If `log.file` is empty, logs are written to `logs/engine_YYYYMMDD_HHMMSS.log` and the latest 50 files are kept.
+### Key Components
 
-Runtime logs
-- Console logs stream live (flushed each line) and to rotating files in `logs/`
-- Run errors (GLFW/X issues) are also written to `logs/run_errors.log` with session separators
+- **InputManager**: Central input handling with action mapping
+- **ConfigManager**: Runtime config file management
+- **GreedyMesher**: Efficient mesh generation
+- **Raycast**: Block selection and editing
+- **Voxel System**: Chunk-based world storage
 
-## Troubleshooting (WSL + VcXsrv)
+### Code Style
+- Modern C++ with RAII and smart pointers
+- Namespace organization by module
+- Comprehensive error handling and logging
+- Separation of concerns between modules
 
-- Ensure VcXsrv is started with: Multiple windows, Start no client, Disable access control, Disable Native OpenGL, and allowed in Windows Firewall (Private+Public)
-- In WSL, set display variables before running:
-  ```bash
-  export DISPLAY=127.0.0.1:0.0
-  export LIBGL_ALWAYS_INDIRECT=1
-  ./build/bin/voxel_app
-  ```
-- If windows do not appear: try software GL:
-  ```bash
-  export LIBGL_ALWAYS_SOFTWARE=1
-  export MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
-  ```
-- Check `logs/run_errors.log` for explicit messages (includes DISPLAY value)
+## Version History
 
-## Versioning & Releases
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-This project uses [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
-- **MAJOR**: Incompatible API changes
-- **MINOR**: New functionality in a backwards compatible manner  
-- **PATCH**: Backwards compatible bug fixes
+## License
 
-**Current Version:** See `VERSION` file
-
-**Stable Releases:**
-- Executables are saved in `stable_releases/voxel_engine_X.Y.Z/`
-- Each release includes: executable, config, README, and run script
-- Create release: `scripts/create_release.bat` (Windows) or `scripts/create_release.sh` (Linux)
-- **Current Release**: `stable_releases/voxel_engine_1.0.0/` (VSync configurable, F4 mouse lock)
-
-## Notes
-
-- **Windows is the recommended platform** - native performance, no X server setup required
-- WSL requires an X server (VcXsrv) for the window and may have compatibility issues
-- The demo uses immediate mode OpenGL for simplicity; a VBO/IBO + shader path can be added next
-- Visual Studio 2022 provides the best development experience on Windows
-
-
-
+This project is licensed under the MIT License - see the LICENSE file for details.

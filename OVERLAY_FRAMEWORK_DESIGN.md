@@ -1,138 +1,205 @@
-# Overlay and Menu Framework Design
+# Voxel Engine 2025 - Architecture Overview
 
-## Overview
-A flexible framework for UI overlays, menus, and configurable input handling.
+## Project Structure
 
-## Core Components
+The engine follows a modular architecture with clear separation of concerns:
+
+```
+src/
+├── app/           # Application entry point and initialization
+├── camera/        # Camera system and movement controls
+├── config/        # Configuration management and file handling
+├── core/          # Core utilities (logging, math, common types)
+├── input/         # Input system with action-based mapping
+├── mesh/          # Mesh generation and data structures
+├── render/        # OpenGL rendering, raycast, and graphics
+└── voxel/         # Voxel storage, chunks, and world management
+```
+
+## Core Systems
 
 ### 1. Input System (`src/input/`)
-```
-input/
-├── input_manager.hpp/cpp     # Central input handling
-├── key_mapping.hpp/cpp       # Configurable key bindings
-├── input_config.hpp/cpp      # Load/save input configuration
-└── input_events.hpp          # Event system for input
-```
 
-### 2. UI Framework (`src/ui/`)
-```
-ui/
-├── ui_manager.hpp/cpp        # Central UI state management
-├── overlay.hpp/cpp           # Base overlay class
-├── menu.hpp/cpp              # Menu system
-├── settings_menu.hpp/cpp     # Settings menu implementation
-├── widgets/
-│   ├── button.hpp/cpp        # Button widget
-│   ├── slider.hpp/cpp        # Slider widget
-│   ├── checkbox.hpp/cpp      # Checkbox widget
-│   └── text_input.hpp/cpp    # Text input widget
-└── rendering/
-    ├── ui_renderer.hpp/cpp   # UI rendering system
-    └── fonts.hpp/cpp         # Font management
-```
+**Current Implementation:**
+- `input_manager.hpp/cpp` - Central input handling with action mapping
+- `key_constants.hpp/cpp` - Key name to GLFW key code conversion
 
-### 3. Configuration System (`src/config/`)
-```
-config/
-├── config_manager.hpp/cpp    # Central config management
-├── input_config.hpp/cpp      # Input-specific config
-├── ui_config.hpp/cpp         # UI-specific config
-└── settings.hpp/cpp          # Game settings
-```
+**Features:**
+- Action-based input mapping (e.g., "MoveForward" instead of "W")
+- Hot reload support for `input.ini` changes
+- Context-sensitive input (Game/Menu states)
+- Configurable mouse sensitivity
 
-## Key Features
-
-### Input System
-- **Configurable Key Mappings**: All controls stored in `input.ini`
-- **Action-Based Input**: Map keys to actions (e.g., "move_forward", "toggle_menu")
-- **Context-Sensitive**: Different key maps for different UI states
-- **Hot Reload**: Update key bindings without restart
-
-### UI System
-- **Layered Overlays**: Multiple UI layers (HUD, menus, dialogs)
-- **Modal System**: Block input to background when menu is open
-- **Widget System**: Reusable UI components
-- **Theme Support**: Configurable colors, fonts, styles
-
-### Settings Menu
-- **Mouse Sensitivity**: Adjustable look sensitivity
-- **Graphics Settings**: Resolution, VSync, quality presets
-- **Audio Settings**: Volume controls, audio device selection
-- **Key Bindings**: Visual key remapping interface
-
-## Configuration Files
-
-### `input.ini`
+**Configuration:**
 ```ini
 [actions]
-move_forward=W
-move_backward=S
-move_left=A
-move_right=D
-look_up=MOUSE_Y_NEG
-look_down=MOUSE_Y_POS
-look_left=MOUSE_X_NEG
-look_right=MOUSE_X_POS
-toggle_menu=ESCAPE
-toggle_debug=F3
-toggle_wireframe=F
-toggle_mouse_lock=F4
-recenter_camera=R
-break_block=MOUSE_LEFT
-place_block=MOUSE_RIGHT
+MoveForward=W
+MoveBackward=S
+MoveLeft=A
+MoveRight=D
+MoveUp=SPACE
+MoveDown=CTRL
+FastMovement=SHIFT
+BreakBlock=MOUSE_LEFT
+PlaceBlock=MOUSE_RIGHT
 
-[contexts]
-game=default
-menu=menu_keys
+[settings]
+mouse_sensitivity=0.01
 ```
 
-### `ui.ini`
-```ini
-[theme]
-primary_color=#2E3440
-secondary_color=#3B4252
-accent_color=#88C0D0
-text_color=#ECEFF4
-font_size=14
-font_family=Consolas
+### 2. Configuration System (`src/config/`)
 
-[layout]
-menu_width=400
-menu_height=300
-button_height=32
-slider_width=200
+**Current Implementation:**
+- `config.hpp/cpp` - Engine configuration loading
+- `config_manager.hpp/cpp` - Runtime config file management
+
+**Features:**
+- Automatic config file copying from `default_config/` to runtime location
+- Full absolute path logging for file operations
+- Support for multiple config files (`engine.ini`, `input.ini`)
+- Default configuration preservation
+
+### 3. Mesh System (`src/mesh/`)
+
+**Current Implementation:**
+- `mesh.hpp/cpp` - Mesh data structures (Vertex, Mesh)
+- `greedy_mesher.hpp/cpp` - Greedy meshing algorithm
+
+**Features:**
+- Efficient face culling (only visible faces)
+- Greedy meshing for reduced triangle count
+- Clean separation of data and generation logic
+
+### 4. Rendering System (`src/render/`)
+
+**Current Implementation:**
+- `gl_app.hpp/cpp` - Main OpenGL application and demo
+- `raycast.hpp/cpp` - Ray-voxel intersection for block editing
+- `glad/` - OpenGL function loader
+
+**Features:**
+- Immediate mode OpenGL rendering
+- Raycast-based block selection and placement
+- Camera controls with FPS-independent movement
+- Debug overlay and wireframe mode
+
+### 5. Voxel System (`src/voxel/`)
+
+**Current Implementation:**
+- `voxel.hpp/cpp` - Voxel data structure
+- `chunk.hpp/cpp` - Chunk storage and serialization
+- `world.hpp/cpp` - World management
+- `world_manager.hpp/cpp` - Chunk loading and view distance
+
+**Features:**
+- Chunk-based world partitioning
+- Voxel type system (Air, Dirt, etc.)
+- File-based chunk persistence
+- View distance culling
+
+## Configuration Management
+
+### Runtime Config Location
+All config files are placed in `build/bin/Release/config/` alongside the executable:
+- `engine.ini` - Engine settings (chunk size, logging, graphics)
+- `input.ini` - Input bindings and mouse sensitivity
+
+### Default Config Source
+Default configurations are stored in `default_config/` and copied to runtime location on first run. The defaults are never modified by the application.
+
+### Hot Reload Support
+Input bindings can be changed in `input.ini` and are automatically reloaded without restarting the application.
+
+## Input System Architecture
+
+### Action-Based Mapping
+Instead of hardcoding key checks, the system uses abstract actions:
+```cpp
+enum class Action {
+    MoveForward, MoveBackward, MoveLeft, MoveRight,
+    MoveUp, MoveDown, FastMovement,
+    LookUp, LookDown, LookLeft, LookRight,
+    ToggleMenu, ToggleDebug, ToggleWireframe,
+    BreakBlock, PlaceBlock
+};
 ```
 
-## Implementation Plan
+### Context-Sensitive Input
+Different input contexts allow for different key mappings:
+```cpp
+enum class InputContext {
+    Game,    // Normal gameplay controls
+    Menu     // Menu navigation controls
+};
+```
 
-### Phase 1: Input System Refactor
-1. Create `InputManager` class
-2. Implement action-based input mapping
-3. Add configuration file support
-4. Refactor existing input handling
+### Key Name Mapping
+Human-readable key names in config files are converted to GLFW key codes:
+```cpp
+// Config file uses: MoveForward=W
+// System converts: W -> GLFW_KEY_W (87)
+```
 
-### Phase 2: Basic UI Framework
-1. Create `UIManager` and `Overlay` base classes
-2. Implement basic widget system
-3. Add rendering pipeline for UI
-4. Create simple menu system
+## Logging System
 
-### Phase 3: Settings Menu
-1. Implement settings menu UI
-2. Add mouse sensitivity controls
-3. Add graphics settings
-4. Integrate with input system
+### Features
+- **Multi-level logging**: Debug, Info, Warn, Error
+- **File rotation**: Keeps latest 50 log files
+- **Full path logging**: All file operations show absolute paths
+- **Console output**: Real-time logs with timestamps
+- **Session separation**: Clear session boundaries in log files
 
-### Phase 4: Advanced Features
-1. Key binding interface
-2. Theme customization
-3. Save/load user preferences
-4. Hot reload support
+### Example Output
+```
+[2025-10-04 02:27:11.602] [INFO] Saved chunk to C:\Users\ASUS\Documents\GitHub\voxel_engine_2025\build\bin\Release\chunk_0_0.vxl
+[2025-10-04 02:27:11.603] [INFO] Mesh: vertices=384, indices=576
+```
 
-## Benefits
+## Build System
 
-- **Maintainable**: Clean separation of concerns
-- **Extensible**: Easy to add new UI elements and controls
-- **User-Friendly**: Configurable controls and settings
-- **Professional**: Modern UI/UX patterns
-- **Performance**: Efficient rendering and input handling
+### CMake Configuration
+- **Modular libraries**: Each module builds as a separate static library
+- **External dependencies**: GLFW fetched via FetchContent
+- **Platform support**: Windows (Visual Studio), Linux (GCC/Clang)
+- **Optional components**: OpenGL rendering can be disabled
+
+### Build Options
+```cmake
+option(VOXEL_WITH_GL "Enable OpenGL/GLFW renderer" OFF)
+```
+
+## Future Enhancements
+
+### Planned Features
+1. **UI System**: Overlay framework for menus and HUD
+2. **Settings Menu**: Visual configuration interface
+3. **Key Binding UI**: Interactive key remapping
+4. **Shader Pipeline**: VBO/IBO rendering with shaders
+5. **Multi-chunk Support**: Seamless world streaming
+
+### Architecture Principles
+- **Separation of Concerns**: Each module has a single responsibility
+- **Dependency Injection**: Systems communicate through well-defined interfaces
+- **Configuration-Driven**: Behavior controlled by config files
+- **Error Handling**: Comprehensive logging and graceful degradation
+- **Performance**: Efficient algorithms and data structures
+
+## Development Guidelines
+
+### Code Organization
+- Use namespaces to separate modules
+- Keep headers minimal with forward declarations
+- Implement in separate .cpp files
+- Follow RAII principles
+
+### Error Handling
+- Log all file operations with full paths
+- Provide meaningful error messages
+- Use exceptions for unrecoverable errors
+- Validate inputs and configurations
+
+### Testing
+- Build and run after each significant change
+- Test configuration changes and hot reload
+- Verify cross-platform compatibility
+- Check memory usage and performance

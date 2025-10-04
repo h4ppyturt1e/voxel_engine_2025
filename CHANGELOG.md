@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Action-based input system with configurable key bindings
+- Hot reload support for input configuration changes
+- Context-sensitive input (Game/Menu states)
+- ConfigManager for runtime configuration file management
+- Full file path logging for better debugging
+- Greedy meshing algorithm for efficient mesh generation
+- Raycast system for block selection and editing
+
+### Changed
+- Refactored input system to use InputManager instead of direct GLFW calls
+- Moved mesh generation logic to dedicated GreedyMesher class
+- Extracted raycast functionality to separate module
+- Updated configuration system to use runtime config directory
+- Improved logging with absolute file paths
+
+### Removed
+- Duplicate InputSystem classes
+- Stub Renderer and Pipeline classes
+- Hardcoded key mappings in favor of configurable system
+
+### Fixed
+- FPS-independent movement using delta time
+- Chunk file saving to correct executable directory
+- Config file path resolution issues
+
 ## [1.0.0] - 2025-10-03
 
 ### Added
