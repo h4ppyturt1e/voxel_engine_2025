@@ -6,19 +6,36 @@ Lightweight voxel engine scaffold with:
 - Minimal OpenGL demo with camera and editing
 - Configurable logging with timestamps and rotating log files
 
-## Build
+## Quick Start (Windows - Recommended)
 
-WSL/Linux:
+**Prerequisites:**
+- Visual Studio 2022 Community (install "Desktop development with C++" workload)
+- CMake 3.16+
+
+**Build & Run:**
+```cmd
+git clone <repo-url>
+cd voxel_engine_2025
+mkdir build && cd build
+cmake -G "Visual Studio 17 2022" -A x64 -DVOXEL_WITH_GL=ON ..
+cmake --build . --config Release
+.\bin\Release\voxel_app.exe
+```
+
+## Build Options
+
+### Windows (Recommended)
+```cmd
+mkdir build && cd build
+cmake -G "Visual Studio 17 2022" -A x64 -DVOXEL_WITH_GL=ON ..
+cmake --build . --config Release
+.\bin\Release\voxel_app.exe
+```
+
+### WSL/Linux (Alternative)
 ```bash
 mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DVOXEL_WITH_GL=ON ..
-cmake --build . --config Release
-```
-
-Windows (MSVC):
-```bat
-mkdir build && cd build
-cmake -G "Visual Studio 17 2022" -A x64 -DVOXEL_WITH_GL=ON ..
 cmake --build . --config Release
 ```
 
@@ -78,8 +95,10 @@ Runtime logs
 
 ## Notes
 
-- Running on WSL requires an X server (VcXsrv) for the window.
-- The demo uses immediate mode OpenGL for simplicity; a VBO/IBO + shader path can be added next.
+- **Windows is the recommended platform** - native performance, no X server setup required
+- WSL requires an X server (VcXsrv) for the window and may have compatibility issues
+- The demo uses immediate mode OpenGL for simplicity; a VBO/IBO + shader path can be added next
+- Visual Studio 2022 provides the best development experience on Windows
 
 
 
