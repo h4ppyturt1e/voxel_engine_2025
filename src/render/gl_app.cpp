@@ -241,7 +241,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             if (pitch < -1.5f) pitch = -1.5f;
             if (pitch > 1.5f)  pitch = 1.5f;
         }
-        float moveSpeed = inputManager.isActionPressed(input::Action::MoveDown) ? 6.0f : 2.0f;
+        float moveSpeed = inputManager.isActionPressed(input::Action::FastMovement) ? 6.0f : 2.0f;
         moveSpeed *= deltaTime; // Apply delta time
         // compute facing vectors from yaw/pitch
         float cp = std::cos(pitch), sp = std::sin(pitch);
@@ -258,6 +258,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         if (inputManager.isActionPressed(input::Action::MoveBackward)) { camX -= fwdX * moveSpeed; camY -= fwdY * moveSpeed; camZ -= fwdZ * moveSpeed; }
         if (inputManager.isActionPressed(input::Action::MoveLeft)) { camX -= rightX * moveSpeed;                         camZ -= rightZ * moveSpeed; }
         if (inputManager.isActionPressed(input::Action::MoveRight)) { camX += rightX * moveSpeed;                         camZ += rightZ * moveSpeed; }
+        if (inputManager.isActionPressed(input::Action::MoveUp)) { camY += moveSpeed; }
+        if (inputManager.isActionPressed(input::Action::MoveDown)) { camY -= moveSpeed; }
         // Note: Q/E no longer dolly; they are used for edit actions below
 		int w,h; glfwGetFramebufferSize(window, &w, &h);
 		glViewport(0,0,w,h);

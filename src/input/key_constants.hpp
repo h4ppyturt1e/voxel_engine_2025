@@ -19,6 +19,7 @@ constexpr int KEY_F3 = 292;
 constexpr int KEY_F4 = 293;
 constexpr int KEY_F5 = 294;
 constexpr int KEY_LEFT_SHIFT = 340;
+constexpr int KEY_LEFT_CONTROL = 341;
 constexpr int MOUSE_BUTTON_LEFT = 0;
 constexpr int MOUSE_BUTTON_RIGHT = 1;
 

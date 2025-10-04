@@ -9,6 +9,7 @@ enum class KeyState { Up, Down };
 
 enum class Action {
     MoveForward, MoveBackward, MoveLeft, MoveRight, MoveUp, MoveDown,
+    FastMovement,
     LookUp, LookDown, LookLeft, LookRight,
     ToggleMenu, ToggleDebug, ToggleWireframe, ToggleMouseLock, ToggleVSync, RecenterCamera,
     BreakBlock, PlaceBlock,

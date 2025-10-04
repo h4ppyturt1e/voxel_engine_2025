@@ -150,7 +150,8 @@ void InputManager::setupDefaultMappings() {
     actionToKey_[Action::MoveLeft] = KEY_A;
     actionToKey_[Action::MoveRight] = KEY_D;
     actionToKey_[Action::MoveUp] = KEY_SPACE;
-    actionToKey_[Action::MoveDown] = KEY_LEFT_SHIFT;
+    actionToKey_[Action::MoveDown] = KEY_LEFT_CONTROL;
+    actionToKey_[Action::FastMovement] = KEY_LEFT_SHIFT;
     actionToKey_[Action::LookUp] = KEY_UP;
     actionToKey_[Action::LookDown] = KEY_DOWN;
     actionToKey_[Action::LookLeft] = KEY_LEFT;
@@ -173,6 +174,7 @@ std::string InputManager::actionToString(Action action) const {
         case Action::MoveRight: return "MoveRight";
         case Action::MoveUp: return "MoveUp";
         case Action::MoveDown: return "MoveDown";
+        case Action::FastMovement: return "FastMovement";
         case Action::LookUp: return "LookUp";
         case Action::LookDown: return "LookDown";
         case Action::LookLeft: return "LookLeft";
@@ -196,6 +198,7 @@ Action InputManager::stringToAction(const std::string& str) const {
     if (str == "MoveRight") return Action::MoveRight;
     if (str == "MoveUp") return Action::MoveUp;
     if (str == "MoveDown") return Action::MoveDown;
+    if (str == "FastMovement") return Action::FastMovement;
     if (str == "LookUp") return Action::LookUp;
     if (str == "LookDown") return Action::LookDown;
     if (str == "LookLeft") return Action::LookLeft;
@@ -218,6 +221,7 @@ int InputManager::keyNameToCode(const std::string& keyName) const {
     if (keyName == "D") return KEY_D;
     if (keyName == "SPACE") return KEY_SPACE;
     if (keyName == "SHIFT") return KEY_LEFT_SHIFT;
+    if (keyName == "CTRL") return KEY_LEFT_CONTROL;
     if (keyName == "UP") return KEY_UP;
     if (keyName == "DOWN") return KEY_DOWN;
     if (keyName == "LEFT") return KEY_LEFT;
@@ -241,6 +245,7 @@ std::string InputManager::keyCodeToName(int keyCode) const {
         case KEY_D: return "D";
         case KEY_SPACE: return "SPACE";
         case KEY_LEFT_SHIFT: return "SHIFT";
+        case KEY_LEFT_CONTROL: return "CTRL";
         case KEY_UP: return "UP";
         case KEY_DOWN: return "DOWN";
         case KEY_LEFT: return "LEFT";
