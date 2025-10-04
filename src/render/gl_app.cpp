@@ -5,6 +5,7 @@
 #include <GL/gl.h>
 #include "../core/logging.hpp"
 #include "../core/math.hpp"
+#include "../config/config.hpp"
 #include <cmath>
 #include <cstring>
 #include "../voxel/world.hpp"
@@ -162,7 +163,10 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		return -1;
 	}
 	glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    
+    // Load VSync setting from config
+    bool vsyncEnabled = config::Config::instance().graphics().vsync;
+    glfwSwapInterval(vsyncEnabled ? 1 : 0);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -265,12 +269,13 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		glEnd();
 
         // Keyboard: recenter (R) to world origin view
-        static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevML=false, prevMR=false; 
+        static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevF4 = false, prevML=false, prevMR=false;
         bool curR = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
         bool curF = glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS;
         bool curQ = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
         bool curE = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
         bool curF3 = glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS;
+        bool curF4 = glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS;
         bool curML = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
         bool curMR = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
         if (curR && !prevR) {
@@ -287,7 +292,12 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         if (curF3 && !prevF3) {
             showDebug = !showDebug;
         }
-        prevR = curR; prevF = curF; prevF3 = curF3;
+        static bool mouseLocked = false;
+        if (curF4 && !prevF4) {
+            mouseLocked = !mouseLocked;
+            glfwSetInputMode(window, GLFW_CURSOR, mouseLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        }
+        prevR = curR; prevF = curF; prevF3 = curF3; prevF4 = curF4;
 
         // Raycast and edit (mouse buttons)
         bool pressL = curML && !prevML;

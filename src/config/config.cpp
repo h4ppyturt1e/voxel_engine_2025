@@ -34,6 +34,7 @@ bool Config::loadFromFile(const std::string& path) {
 		else if (key == "chunk.size_z") chunk_.sizeZ = std::stoi(val);
 		else if (key == "log.level") logging_.level = val;
 		else if (key == "log.file") logging_.filePath = val;
+		else if (key == "vsync") graphics_.vsync = (val == "true" || val == "1");
 	}
 	return true;
 }

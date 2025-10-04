@@ -25,9 +25,16 @@ public:
 
 	const Logging& logging() const { return logging_; }
 
+	struct Graphics {
+		bool vsync {true};
+	};
+	
+	const Graphics& graphics() const { return graphics_; }
+
 private:
 	ChunkDimensions chunk_{};
 	Logging logging_{};
+	Graphics graphics_{};
 };
 
 } // namespace config

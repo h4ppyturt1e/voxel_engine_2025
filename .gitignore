@@ -19,3 +19,10 @@ Thumbs.db
 
 # Todo
 TODO.md
+
+# Logs (keep structure but ignore content)
+logs/*.log
+logs/run_errors.log
+
+# Stable releases (keep structure but ignore content)
+stable_releases/*/

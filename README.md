@@ -59,18 +59,30 @@ If `:0.0` fails, use your Windows host IP for DISPLAY.
 - F: toggle wireframe
 - R: recenter camera to world origin
 - F3: toggle debug title (camera xyz, look vector, current hit voxel)
+- F4: toggle mouse lock (cursor capture for look controls)
   - Title also shows an FPS counter (updates ~4x/second)
 
 ## Config
 
 Edit `engine.ini` in project root:
+```ini
+# Voxel Engine 2025 Configuration
+chunk.size_x=8
+chunk.size_y=8
+chunk.size_z=8
+log.level=debug
+log.file=logs/engine.log
+
+[graphics]
+vsync=true
 ```
-chunk.size_x=16
-chunk.size_y=16
-chunk.size_z=16
-log.level=info
-log.file=
-```
+
+**Settings:**
+- `chunk.size_*`: Voxel chunk dimensions (default: 8x8x8)
+- `log.level`: Logging level (debug, info, warn, error)
+- `log.file`: Log file path (empty = auto-generated with rotation)
+- `vsync`: Enable/disable vertical sync (true/false)
+
 If `log.file` is empty, logs are written to `logs/engine_YYYYMMDD_HHMMSS.log` and the latest 50 files are kept.
 
 Runtime logs
@@ -92,6 +104,21 @@ Runtime logs
   export MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
   ```
 - Check `logs/run_errors.log` for explicit messages (includes DISPLAY value)
+
+## Versioning & Releases
+
+This project uses [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
+- **MAJOR**: Incompatible API changes
+- **MINOR**: New functionality in a backwards compatible manner  
+- **PATCH**: Backwards compatible bug fixes
+
+**Current Version:** See `VERSION` file
+
+**Stable Releases:**
+- Executables are saved in `stable_releases/voxel_engine_X.Y.Z/`
+- Each release includes: executable, config, README, and run script
+- Create release: `scripts/create_release.bat` (Windows) or `scripts/create_release.sh` (Linux)
+- **Current Release**: `stable_releases/voxel_engine_1.0.0/` (VSync configurable, F4 mouse lock)
 
 ## Notes
 
