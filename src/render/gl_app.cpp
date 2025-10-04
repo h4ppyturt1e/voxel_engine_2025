@@ -204,7 +204,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 
     while (!glfwWindowShouldClose(window)) {
         // input
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, GLFW_TRUE);
+        // Escape key disabled - use Alt+F4 or close button to exit
         // Mouse look: always track mouse delta
         {
             double x, y; glfwGetCursorPos(window, &x, &y);
@@ -269,13 +269,14 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		glEnd();
 
         // Keyboard: recenter (R) to world origin view
-        static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevF4 = false, prevML=false, prevMR=false;
+        static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevF4 = false, prevF5 = false, prevML=false, prevMR=false;
         bool curR = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
         bool curF = glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS;
         bool curQ = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
         bool curE = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
         bool curF3 = glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS;
         bool curF4 = glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS;
+        bool curF5 = glfwGetKey(window, GLFW_KEY_F5) == GLFW_PRESS;
         bool curML = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
         bool curMR = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
         if (curR && !prevR) {
@@ -297,7 +298,13 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             mouseLocked = !mouseLocked;
             glfwSetInputMode(window, GLFW_CURSOR, mouseLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         }
-        prevR = curR; prevF = curF; prevF3 = curF3; prevF4 = curF4;
+        static bool currentVsync = config::Config::instance().graphics().vsync;
+        if (curF5 && !prevF5) {
+            currentVsync = !currentVsync;
+            glfwSwapInterval(currentVsync ? 1 : 0);
+            core::log(core::LogLevel::Info, currentVsync ? "VSync enabled" : "VSync disabled");
+        }
+        prevR = curR; prevF = curF; prevF3 = curF3; prevF4 = curF4; prevF5 = curF5;
 
         // Raycast and edit (mouse buttons)
         bool pressL = curML && !prevML;

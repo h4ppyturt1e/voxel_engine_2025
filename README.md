@@ -60,6 +60,7 @@ If `:0.0` fails, use your Windows host IP for DISPLAY.
 - R: recenter camera to world origin
 - F3: toggle debug title (camera xyz, look vector, current hit voxel)
 - F4: toggle mouse lock (cursor capture for look controls)
+- F5: toggle VSync (vertical sync on/off)
   - Title also shows an FPS counter (updates ~4x/second)
 
 ## Config
