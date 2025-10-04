@@ -1,6 +1,10 @@
 #include "input_manager.hpp"
 #include "key_constants.hpp"
 #include <fstream>
+#include <filesystem>
+#include <cstdint>
+#include <chrono>
+#include <unordered_map>
 
 namespace input {
 
@@ -10,13 +14,32 @@ InputManager& InputManager::instance() {
 }
 
 bool InputManager::initialize() {
-    setupDefaultMappings();
+    // No hardcoded mappings - everything comes from config file
     return true;
 }
 
 bool InputManager::loadConfig(const std::string& configPath) {
+    // Debug: printf("loadConfig called with path: %s\n", configPath.c_str());
+    
+    configPath_ = configPath;
+    
+    // Initialize timestamp on first load
+    if (lastConfigModTime_ == 0) {
+        try {
+            auto fileTime = std::filesystem::last_write_time(configPath);
+            lastConfigModTime_ = std::chrono::duration_cast<std::chrono::seconds>(
+                fileTime.time_since_epoch()).count();
+        } catch (const std::exception&) {
+            lastConfigModTime_ = 0;
+        }
+    }
+    
     std::ifstream file(configPath);
-    if (!file.is_open()) return false;
+    if (!file.is_open()) {
+        // Debug: printf("Failed to open config file: %s\n", configPath.c_str());
+        return false;
+    }
+    // Debug: printf("Successfully opened config file: %s\n", configPath.c_str());
     
     std::string line;
     while (std::getline(file, line)) {
@@ -40,6 +63,9 @@ bool InputManager::loadConfig(const std::string& configPath) {
             int keyCode = keyNameToCode(value);
             if (keyCode != -1) {
                 actionToKey_[action] = keyCode;
+                // Also update current context mapping
+                contextMappings_[currentContext_][action] = keyCode;
+                // Debug: printf("Loaded mapping: %s -> %s (keyCode: %d)\n", key.c_str(), value.c_str(), keyCode);
             }
         } else if (key == "mouse_sensitivity") {
             try {
@@ -75,6 +101,13 @@ bool InputManager::saveConfig(const std::string& configPath) {
 }
 
 void InputManager::update() {
+    // Check for config file changes and reload if needed
+    if (isConfigFileModified()) {
+        reloadConfig();
+        // Add debug logging
+        printf("Input config reloaded!\n");
+    }
+    
     prevKeyStates_ = keyStates_;
     mouseDeltaX_ = 0.0f;
     mouseDeltaY_ = 0.0f;
@@ -87,6 +120,9 @@ bool InputManager::isActionPressed(Action action) const {
         auto actionIt = contextIt->second.find(action);
         if (actionIt != contextIt->second.end()) {
             auto keyIt = keyStates_.find(actionIt->second);
+            if (action == Action::MoveForward) {
+                // Debug: printf("Checking MoveForward: context key=%d, pressed=%d\n", actionIt->second, keyIt != keyStates_.end() && keyIt->second);
+            }
             return keyIt != keyStates_.end() && keyIt->second;
         }
     }
@@ -95,6 +131,9 @@ bool InputManager::isActionPressed(Action action) const {
     auto it = actionToKey_.find(action);
     if (it == actionToKey_.end()) return false;
     auto keyIt = keyStates_.find(it->second);
+    if (action == Action::MoveForward) {
+        printf("Checking MoveForward: default key=%d, pressed=%d\n", it->second, keyIt != keyStates_.end() && keyIt->second);
+    }
     return keyIt != keyStates_.end() && keyIt->second;
 }
 
@@ -149,8 +188,10 @@ std::string InputManager::getActionName(Action action) const {
 }
 
 void InputManager::resetToDefaults() {
-    setupDefaultMappings();
-    setupContextMappings();
+    // Reset to defaults by reloading the config file
+    if (!configPath_.empty()) {
+        loadConfig(configPath_);
+    }
 }
 
 void InputManager::setContext(InputContext context) {
@@ -185,37 +226,10 @@ void InputManager::setMouseDelta(float deltaX, float deltaY) {
     mouseDeltaY_ = deltaY * mouseSensitivity_;
 }
 
-void InputManager::setupDefaultMappings() {
-    actionToKey_[Action::MoveForward] = KEY_W;
-    actionToKey_[Action::MoveBackward] = KEY_S;
-    actionToKey_[Action::MoveLeft] = KEY_A;
-    actionToKey_[Action::MoveRight] = KEY_D;
-    actionToKey_[Action::MoveUp] = KEY_SPACE;
-    actionToKey_[Action::MoveDown] = KEY_LEFT_CONTROL;
-    actionToKey_[Action::FastMovement] = KEY_LEFT_SHIFT;
-    actionToKey_[Action::LookUp] = KEY_UP;
-    actionToKey_[Action::LookDown] = KEY_DOWN;
-    actionToKey_[Action::LookLeft] = KEY_LEFT;
-    actionToKey_[Action::LookRight] = KEY_RIGHT;
-    actionToKey_[Action::ToggleMenu] = KEY_ESCAPE;
-    actionToKey_[Action::ToggleDebug] = KEY_F3;
-    actionToKey_[Action::ToggleWireframe] = KEY_F;
-    actionToKey_[Action::ToggleMouseLock] = KEY_F4;
-    actionToKey_[Action::ToggleVSync] = KEY_F5;
-    actionToKey_[Action::RecenterCamera] = KEY_R;
-    actionToKey_[Action::BreakBlock] = MOUSE_BUTTON_LEFT;
-    actionToKey_[Action::PlaceBlock] = MOUSE_BUTTON_RIGHT;
-}
 
 void InputManager::setupContextMappings() {
-    // Game context - use default mappings
-    // Menu context - different mappings for navigation
-    contextMappings_[InputContext::Menu][Action::ToggleMenu] = KEY_ESCAPE;
-    contextMappings_[InputContext::Menu][Action::MoveUp] = KEY_UP;
-    contextMappings_[InputContext::Menu][Action::MoveDown] = KEY_DOWN;
-    contextMappings_[InputContext::Menu][Action::MoveLeft] = KEY_LEFT;
-    contextMappings_[InputContext::Menu][Action::MoveRight] = KEY_RIGHT;
-    contextMappings_[InputContext::Menu][Action::BreakBlock] = KEY_ENTER; // Select/confirm
+    // Context mappings are now loaded from config file
+    // This function is kept for future context-specific mappings
 }
 
 std::string InputManager::actionToString(Action action) const {
@@ -266,51 +280,97 @@ Action InputManager::stringToAction(const std::string& str) const {
     return Action::Count;
 }
 
-int InputManager::keyNameToCode(const std::string& keyName) const {
-    if (keyName == "W") return KEY_W;
-    if (keyName == "A") return KEY_A;
-    if (keyName == "S") return KEY_S;
-    if (keyName == "D") return KEY_D;
-    if (keyName == "SPACE") return KEY_SPACE;
-    if (keyName == "SHIFT") return KEY_LEFT_SHIFT;
-    if (keyName == "CTRL") return KEY_LEFT_CONTROL;
-    if (keyName == "UP") return KEY_UP;
-    if (keyName == "DOWN") return KEY_DOWN;
-    if (keyName == "LEFT") return KEY_LEFT;
-    if (keyName == "RIGHT") return KEY_RIGHT;
-    if (keyName == "ESCAPE") return KEY_ESCAPE;
-    if (keyName == "F") return KEY_F;
-    if (keyName == "R") return KEY_R;
-    if (keyName == "F3") return KEY_F3;
-    if (keyName == "F4") return KEY_F4;
-    if (keyName == "F5") return KEY_F5;
-    if (keyName == "MOUSE_LEFT") return MOUSE_BUTTON_LEFT;
-    if (keyName == "MOUSE_RIGHT") return MOUSE_BUTTON_RIGHT;
-    return -1;
+int keyNameToCode(const std::string& keyName) {
+    static const std::unordered_map<std::string, int> keyMap = {
+        // Letters
+        {"A", 65}, {"B", 66}, {"C", 67}, {"D", 68}, {"E", 69}, {"F", 70},
+        {"G", 71}, {"H", 72}, {"I", 73}, {"J", 74}, {"K", 75}, {"L", 76},
+        {"M", 77}, {"N", 78}, {"O", 79}, {"P", 80}, {"Q", 81}, {"R", 82},
+        {"S", 83}, {"T", 84}, {"U", 85}, {"V", 86}, {"W", 87}, {"X", 88},
+        {"Y", 89}, {"Z", 90},
+        
+        // Numbers
+        {"0", 48}, {"1", 49}, {"2", 50}, {"3", 51}, {"4", 52},
+        {"5", 53}, {"6", 54}, {"7", 55}, {"8", 56}, {"9", 57},
+        
+        // Special keys
+        {"SPACE", 32}, {"ENTER", 257}, {"ESCAPE", 256},
+        {"SHIFT", 340}, {"CTRL", 341}, {"ALT", 342},
+        
+        // Arrow keys
+        {"UP", 265}, {"DOWN", 264}, {"LEFT", 263}, {"RIGHT", 262},
+        
+        // Function keys
+        {"F1", 290}, {"F2", 291}, {"F3", 292}, {"F4", 293}, {"F5", 294},
+        {"F6", 295}, {"F7", 296}, {"F8", 297}, {"F9", 298}, {"F10", 299},
+        {"F11", 300}, {"F12", 301},
+        
+        // Mouse buttons
+        {"MOUSE_LEFT", 0}, {"MOUSE_RIGHT", 1}, {"MOUSE_MIDDLE", 2}
+    };
+    
+    auto it = keyMap.find(keyName);
+    return (it != keyMap.end()) ? it->second : -1;
 }
 
-std::string InputManager::keyCodeToName(int keyCode) const {
-    switch (keyCode) {
-        case KEY_W: return "W";
-        case KEY_A: return "A";
-        case KEY_S: return "S";
-        case KEY_D: return "D";
-        case KEY_SPACE: return "SPACE";
-        case KEY_LEFT_SHIFT: return "SHIFT";
-        case KEY_LEFT_CONTROL: return "CTRL";
-        case KEY_UP: return "UP";
-        case KEY_DOWN: return "DOWN";
-        case KEY_LEFT: return "LEFT";
-        case KEY_RIGHT: return "RIGHT";
-        case KEY_ESCAPE: return "ESCAPE";
-        case KEY_F: return "F";
-        case KEY_R: return "R";
-        case KEY_F3: return "F3";
-        case KEY_F4: return "F4";
-        case KEY_F5: return "F5";
-        case MOUSE_BUTTON_LEFT: return "MOUSE_LEFT";
-        case MOUSE_BUTTON_RIGHT: return "MOUSE_RIGHT";
-        default: return "";
+std::string keyCodeToName(int keyCode) {
+    static const std::unordered_map<int, std::string> codeMap = {
+        // Letters
+        {65, "A"}, {66, "B"}, {67, "C"}, {68, "D"}, {69, "E"}, {70, "F"},
+        {71, "G"}, {72, "H"}, {73, "I"}, {74, "J"}, {75, "K"}, {76, "L"},
+        {77, "M"}, {78, "N"}, {79, "O"}, {80, "P"}, {81, "Q"}, {82, "R"},
+        {83, "S"}, {84, "T"}, {85, "U"}, {86, "V"}, {87, "W"}, {88, "X"},
+        {89, "Y"}, {90, "Z"},
+        
+        // Numbers
+        {48, "0"}, {49, "1"}, {50, "2"}, {51, "3"}, {52, "4"},
+        {53, "5"}, {54, "6"}, {55, "7"}, {56, "8"}, {57, "9"},
+        
+        // Special keys
+        {32, "SPACE"}, {257, "ENTER"}, {256, "ESCAPE"},
+        {340, "SHIFT"}, {341, "CTRL"}, {342, "ALT"},
+        
+        // Arrow keys
+        {265, "UP"}, {264, "DOWN"}, {263, "LEFT"}, {262, "RIGHT"},
+        
+        // Function keys
+        {290, "F1"}, {291, "F2"}, {292, "F3"}, {293, "F4"}, {294, "F5"},
+        {295, "F6"}, {296, "F7"}, {297, "F8"}, {298, "F9"}, {299, "F10"},
+        {300, "F11"}, {301, "F12"},
+        
+        // Mouse buttons
+        {0, "MOUSE_LEFT"}, {1, "MOUSE_RIGHT"}, {2, "MOUSE_MIDDLE"}
+    };
+    
+    auto it = codeMap.find(keyCode);
+    return (it != codeMap.end()) ? it->second : "";
+}
+
+void InputManager::reloadConfig() {
+    if (!configPath_.empty()) {
+        loadConfig(configPath_);
+        
+        // Update timestamp after successful reload
+        try {
+            auto fileTime = std::filesystem::last_write_time(configPath_);
+            lastConfigModTime_ = std::chrono::duration_cast<std::chrono::seconds>(
+                fileTime.time_since_epoch()).count();
+        } catch (const std::exception&) {
+            lastConfigModTime_ = 0;
+        }
+    }
+}
+
+bool InputManager::isConfigFileModified() const {
+    if (configPath_.empty()) return false;
+    
+    try {
+        auto fileTime = std::filesystem::last_write_time(configPath_);
+        auto currentModTime = std::chrono::duration_cast<std::chrono::seconds>(
+            fileTime.time_since_epoch()).count();
+        return currentModTime > lastConfigModTime_;
+    } catch (const std::exception&) {
+        return false;
     }
 }
 

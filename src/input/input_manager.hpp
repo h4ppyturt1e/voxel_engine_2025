@@ -50,6 +50,10 @@ public:
     void setKeyMappingForContext(InputContext context, Action action, int key);
     int getKeyMappingForContext(InputContext context, Action action) const;
     
+    // Hot reload functionality
+    void reloadConfig();
+    bool isConfigFileModified() const;
+    
     void setKeyState(int key, bool pressed);
     void setMouseDelta(float deltaX, float deltaY);
 
@@ -67,12 +71,13 @@ private:
     float mouseDeltaY_{0.0f};
     float mouseSensitivity_{0.01f};
     
-    void setupDefaultMappings();
+    // Hot reload state
+    std::string configPath_;
+    std::int64_t lastConfigModTime_{0};
+    
     void setupContextMappings();
     std::string actionToString(Action action) const;
     Action stringToAction(const std::string& str) const;
-    int keyNameToCode(const std::string& keyName) const;
-    std::string keyCodeToName(int keyCode) const;
 };
 
 } // namespace input

@@ -7,8 +7,10 @@
 #include "../core/math.hpp"
 #include "../config/config.hpp"
 #include "../input/input_manager.hpp"
+#include "../config/config_manager.hpp"
 #include <cmath>
 #include <cstring>
+#include <iostream>
 #include "../voxel/world.hpp"
 #include "../mesh/greedy_mesher.hpp"
 #include <filesystem>
@@ -165,10 +167,23 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 	}
 	glfwMakeContextCurrent(window);
     
+    // Initialize ConfigManager
+    config::ConfigManager& configManager = config::ConfigManager::instance();
+    if (!configManager.initialize()) {
+        std::cerr << "Failed to initialize ConfigManager" << std::endl;
+        return -1;
+    }
+    
+    // Ensure input config exists
+    if (!configManager.ensureConfigExists("input.ini")) {
+        std::cerr << "Failed to ensure input.ini exists" << std::endl;
+        return -1;
+    }
+    
     // Initialize InputManager
     input::InputManager& inputManager = input::InputManager::instance();
     inputManager.initialize();
-    inputManager.loadConfig("input.ini");
+    inputManager.loadConfig(configManager.getConfigPath("input.ini"));
     
     // Set up GLFW callbacks
     glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
