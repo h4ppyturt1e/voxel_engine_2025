@@ -90,8 +90,8 @@ int main() {
             }
         }
     }
-    c.saveToFile("chunk_0_0.vxl");
-    core::log(core::LogLevel::Info, "Saved chunk to chunk_0_0.vxl");
+    c.saveToFile("build/bin/Release/chunk_0_0.vxl");
+    core::log(core::LogLevel::Info, "Saved chunk to build/bin/Release/chunk_0_0.vxl");
 
     // Build mesh for this chunk
     mesh::GreedyMesher gm;

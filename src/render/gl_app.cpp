@@ -8,6 +8,7 @@
 #include "../config/config.hpp"
 #include "../input/input_manager.hpp"
 #include "../config/config_manager.hpp"
+#include "raycast.hpp"
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -21,54 +22,6 @@
 
 namespace render {
 
-struct RayHit { int x, y, z; int nx, ny, nz; bool hit; };
-
-static RayHit raycastVoxel(const voxel::Chunk& chunk, float ox, float oy, float oz, float dx, float dy, float dz, float maxDist) {
-    RayHit r{0,0,0,0,0,0,false};
-    const int sx = chunk.sizeX();
-    const int sy = chunk.sizeY();
-    const int sz = chunk.sizeZ();
-
-    int x = (int)std::floor(ox);
-    int y = (int)std::floor(oy);
-    int z = (int)std::floor(oz);
-
-    float t = 0.0f;
-    int stepX = (dx > 0) ? 1 : (dx < 0 ? -1 : 0);
-    int stepY = (dy > 0) ? 1 : (dy < 0 ? -1 : 0);
-    int stepZ = (dz > 0) ? 1 : (dz < 0 ? -1 : 0);
-
-    float tDeltaX = (dx != 0.0f) ? std::abs(1.0f / dx) : 1e30f;
-    float tDeltaY = (dy != 0.0f) ? std::abs(1.0f / dy) : 1e30f;
-    float tDeltaZ = (dz != 0.0f) ? std::abs(1.0f / dz) : 1e30f;
-
-    float nextVoxelBoundaryX = (stepX > 0) ? (std::floor(ox) + 1.0f) : std::floor(ox);
-    float nextVoxelBoundaryY = (stepY > 0) ? (std::floor(oy) + 1.0f) : std::floor(oy);
-    float nextVoxelBoundaryZ = (stepZ > 0) ? (std::floor(oz) + 1.0f) : std::floor(oz);
-
-    float tMaxX = (dx != 0.0f) ? (nextVoxelBoundaryX - ox) / dx : 1e30f; if (tMaxX < 0) tMaxX = 0;
-    float tMaxY = (dy != 0.0f) ? (nextVoxelBoundaryY - oy) / dy : 1e30f; if (tMaxY < 0) tMaxY = 0;
-    float tMaxZ = (dz != 0.0f) ? (nextVoxelBoundaryZ - oz) / dz : 1e30f; if (tMaxZ < 0) tMaxZ = 0;
-
-    int lastNx=0,lastNy=0,lastNz=0;
-
-    while (t <= maxDist) {
-        if (x>=0 && y>=0 && z>=0 && x<sx && y<sy && z<sz) {
-            if (chunk.at(x,y,z).type != voxel::BlockType::Air) {
-                r = {x,y,z,lastNx,lastNy,lastNz,true};
-                return r;
-            }
-        }
-        if (tMaxX < tMaxY) {
-            if (tMaxX < tMaxZ) { x += stepX; t = tMaxX; tMaxX += tDeltaX; lastNx = -stepX; lastNy = 0; lastNz = 0; }
-            else { z += stepZ; t = tMaxZ; tMaxZ += tDeltaZ; lastNx = 0; lastNy = 0; lastNz = -stepZ; }
-        } else {
-            if (tMaxY < tMaxZ) { y += stepY; t = tMaxY; tMaxY += tDeltaY; lastNx = 0; lastNy = -stepY; lastNz = 0; }
-            else { z += stepZ; t = tMaxZ; tMaxZ += tDeltaZ; lastNx = 0; lastNy = 0; lastNz = -stepZ; }
-        }
-    }
-    return r;
-}
 
 static void drawWireCube(int x, int y, int z, float r, float g, float b) {
     const float x0=x, y0=y, z0=z, x1=x+1, y1=y+1, z1=z+1;
