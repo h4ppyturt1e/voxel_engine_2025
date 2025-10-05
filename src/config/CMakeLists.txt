@@ -1,6 +1,8 @@
 add_library(config STATIC
     config.hpp
     config.cpp
+    ini_parser.hpp
+    ini_parser.cpp
     config_manager.hpp
     config_manager.cpp
 )
