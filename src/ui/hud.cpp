@@ -37,15 +37,26 @@ void HUD::render() {
     }
     ImGui::End();
     
-    // Crosshair in center - transparent window
-    ImGuiWindowFlags crosshair_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | 
-                                      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | 
-                                      ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
-    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f - 8, ImGui::GetIO().DisplaySize.y * 0.5f - 8), ImGuiCond_Always);
-    if (ImGui::Begin("Crosshair", nullptr, crosshair_flags)) {
-        ImGui::Text("+");
+    // Crosshair in center via draw list (toggle + size from config)
+    const config::Config& cfg = config::Config::instance();
+    if (cfg.ui().crosshair_enabled) {
+        ImVec2 display = ImGui::GetIO().DisplaySize;
+        ImVec2 center(display.x * 0.5f, display.y * 0.5f);
+        float percent = cfg.ui().crosshair_percent; // 0..100
+        if (percent > 0.0f) {
+            // Non-linear mapping: ease in (quadratic). Normalized t in [0,1]
+            float t = percent / 100.0f;
+            float eased = t * t; // slow start, faster growth later
+            float length = eased * display.x; // span across width
+            float half = length * 0.5f;
+            ImU32 col = IM_COL32(255,255,255,220);
+            ImDrawList* dl = ImGui::GetForegroundDrawList();
+            // horizontal line across percentage of screen width
+            dl->AddLine(ImVec2(center.x - half, center.y), ImVec2(center.x + half, center.y), col, 1.0f);
+            // vertical line uses same eased length to keep a plus
+            dl->AddLine(ImVec2(center.x, center.y - half), ImVec2(center.x, center.y + half), col, 1.0f);
+        }
     }
-    ImGui::End();
     
     // Debug info if enabled
     if (show_debug_) {

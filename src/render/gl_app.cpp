@@ -364,16 +364,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             if (showDebug) {
                 std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f | cam(%.2f,%.2f,%.2f) look(%.2f,%.2f,%.2f)%s",
                              fps, camX, camY, camZ, fwdX, fwdY, fwdZ, isPaused ? " | PAUSED" : "");
-                if (hit.hit) {
-                    char buf2[96];
-                    std::snprintf(buf2, sizeof(buf2), " | hit(%d,%d,%d)", hit.x, hit.y, hit.z);
-                    size_t len = std::strlen(title);
-                    size_t avail = sizeof(title) - 1 - len;
-                    if (avail > 0) {
-                        std::strncpy(title + len, buf2, avail);
-                        title[len + avail <= sizeof(title)-1 ? len + avail : sizeof(title)-1] = '\0';
-                    }
-                }
+                // Removed hit debug text from title
             } else {
                 std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f%s", fps, isPaused ? " | PAUSED" : "");
             }

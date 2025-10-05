@@ -148,6 +148,16 @@ void SettingsMenu::renderUISettings() {
     }
     
     ImGui::Spacing();
+
+    // Crosshair
+    if (ImGui::Checkbox("Enable Crosshair", &temp_settings_.crosshair_enabled)) {
+        settings_changed_ = true;
+    }
+    // Crosshair size removed; percentage only
+    ImGui::Text("Crosshair Size: %.0f%%", temp_settings_.crosshair_percent);
+    if (ImGui::SliderFloat("##CrosshairPercent", &temp_settings_.crosshair_percent, 0.0f, 100.0f, "%.0f%%")) {
+        settings_changed_ = true;
+    }
     
     // UI Theme
     ImGui::Text("Theme:");
@@ -228,6 +238,8 @@ void SettingsMenu::saveSettings() {
         // Write UI section
         file << "[ui]\n";
         file << "ui.mouse_sensitivity=" << settings_.mouse_sensitivity << "\n";
+        file << "ui.crosshair_enabled=" << (settings_.crosshair_enabled ? "true" : "false") << "\n";
+        file << "ui.crosshair_percent=" << settings_.crosshair_percent << "\n";
         file << "# ui.theme=" << settings_.theme << "\n";
         file << "# ui.scale=" << settings_.scale << "\n\n";
         
@@ -256,6 +268,9 @@ void SettingsMenu::loadSettings() {
     settings_.mouse_sensitivity = uiConfig.mouse_sensitivity;
     settings_.theme = uiConfig.theme;
     settings_.scale = uiConfig.scale;
+    settings_.crosshair_enabled = uiConfig.crosshair_enabled;
+    // size removed
+    settings_.crosshair_percent = uiConfig.crosshair_percent;
     
     // Initialize temp settings to same values
     temp_settings_.vsync = settings_.vsync;
@@ -265,6 +280,10 @@ void SettingsMenu::loadSettings() {
     temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
     temp_settings_.theme = settings_.theme;
     temp_settings_.scale = settings_.scale;
+    temp_settings_.crosshair_enabled = settings_.crosshair_enabled;
+    // size removed
+    temp_settings_.crosshair_percent = settings_.crosshair_percent;
+    temp_settings_.crosshair_enabled = settings_.crosshair_enabled;
     
     settings_changed_ = false;
 }
@@ -293,6 +312,9 @@ void SettingsMenu::applySettings() {
     settings_.mouse_sensitivity = temp_settings_.mouse_sensitivity;
     settings_.theme = temp_settings_.theme;
     settings_.scale = temp_settings_.scale;
+    settings_.crosshair_enabled = temp_settings_.crosshair_enabled;
+    // size removed
+    settings_.crosshair_percent = temp_settings_.crosshair_percent;
     
     saveSettings();
     
@@ -315,6 +337,9 @@ void SettingsMenu::applySettings() {
         
         // Apply UI settings (only mouse sensitivity is implemented)
         config.ui().mouse_sensitivity = settings_.mouse_sensitivity;
+        config.ui().crosshair_enabled = settings_.crosshair_enabled;
+        // size removed
+        config.ui().crosshair_percent = settings_.crosshair_percent;
         // config.ui().theme = settings_.theme; // Not implemented
         // config.ui().scale = settings_.scale; // Not implemented
         

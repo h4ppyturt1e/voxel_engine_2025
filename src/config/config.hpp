@@ -39,6 +39,8 @@ public:
 		float mouse_sensitivity {0.01f};
 		std::string theme {"dark"};
 		float scale {1.0f};
+		bool crosshair_enabled {true};
+		float crosshair_percent {10.0f};
 	};
 
 	const UI& ui() const { return ui_; }

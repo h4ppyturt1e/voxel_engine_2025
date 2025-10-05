@@ -41,6 +41,8 @@ bool Config::loadFromFile(const std::string& path) {
 		else if (key == "ui.mouse_sensitivity") ui_.mouse_sensitivity = std::stof(val);
 		else if (key == "ui.theme") ui_.theme = val;
 		else if (key == "ui.scale") ui_.scale = std::stof(val);
+		else if (key == "ui.crosshair_enabled") ui_.crosshair_enabled = (val == "true" || val == "1");
+		else if (key == "ui.crosshair_percent") ui_.crosshair_percent = std::stof(val);
 	else if (key == "build.time") build_time_ = val;
 	}
 	return true;

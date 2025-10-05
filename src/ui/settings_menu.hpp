@@ -31,6 +31,8 @@ private:
         float mouse_sensitivity;
         std::string theme;
         float scale;
+        bool crosshair_enabled;
+        float crosshair_percent;
     } settings_;
     
     // Temporary UI values (for sliders/inputs)
@@ -42,6 +44,8 @@ private:
         float mouse_sensitivity;
         std::string theme;
         float scale;
+        bool crosshair_enabled;
+        float crosshair_percent;
     } temp_settings_;
     
     bool settings_changed_ = false;
