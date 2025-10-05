@@ -72,7 +72,8 @@ void KeyBindingsMenu::render() {
         }
         
         if (is_remapping_) {
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Press a key to assign to: %s", remapping_action_.c_str());
+        // Accessible amber for visibility on light theme
+        ImGui::TextColored(ImVec4(0.55f, 0.38f, 0.00f, 1.0f), "Press a key to assign to: %s", remapping_action_.c_str());
         }
     }
     ImGui::End();

@@ -135,6 +135,12 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         std::cerr << "Failed to ensure input config exists at: " << configPath << std::endl;
         return -1;
     }
+    // Ensure theme config exists
+    if (!configManager.ensureConfigExists("theme.ini")) {
+        std::string configPath = std::filesystem::absolute(configManager.getConfigPath("theme.ini")).string();
+        std::cerr << "Failed to ensure theme config exists at: " << configPath << std::endl;
+        // Not fatal; continue
+    }
     
     // Initialize InputManager
     input::InputManager& inputManager = input::InputManager::instance();

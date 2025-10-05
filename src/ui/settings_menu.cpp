@@ -90,7 +90,8 @@ void SettingsMenu::render() {
         
         if (settings_changed_) {
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "* Unsaved changes");
+            // Use accessible amber that works on light and dark
+            ImGui::TextColored(ImVec4(0.55f, 0.38f, 0.00f, 1.0f), "* Unsaved changes");
         }
     }
     ImGui::End();

@@ -32,7 +32,8 @@ void HUD::render() {
         
         // Show pause indicator if game is paused
         if (UIManager::instance().isGamePaused()) {
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "PAUSED");
+            // Accessible amber that is readable on light backgrounds
+            ImGui::TextColored(ImVec4(0.55f, 0.38f, 0.00f, 1.0f), "PAUSED");
         }
     }
     ImGui::End();

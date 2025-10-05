@@ -3,6 +3,7 @@
 #include "settings_menu.hpp"
 #include "key_bindings_menu.hpp"
 #include "hud.hpp"
+#include "theme.hpp"
 
 #include "../config/config.hpp"
 #include "../config/config_manager.hpp"
@@ -55,6 +56,8 @@ bool UIManager::initialize(void* glfwWindow) {
 #ifdef VOXEL_WITH_GL
         glfw_window_ = static_cast<GLFWwindow*>(glfwWindow);
 #endif
+        // Ensure theme.ini exists in runtime config directory
+        config::ConfigManager::instance().ensureConfigExists("theme.ini");
         initializeImGui(static_cast<GLFWwindow*>(glfwWindow));
     }
     
@@ -230,6 +233,15 @@ void UIManager::saveSettings() {
 
 void UIManager::applySettings() {
     loadSettings();
+#ifdef VOXEL_WITH_GL
+    // Re-apply theme.ini if present after config changes
+    ui::Theme theme;
+    std::string themePath = config::ConfigManager::instance().getConfigPath("theme.ini");
+    std::string themeName = config::Config::instance().ui().theme;
+    if (theme.loadFromFile(themePath, themeName)) {
+        theme.apply();
+    }
+#endif
 }
 
 void UIManager::setOverlayEventCallback(OverlayEventCallback callback) {
@@ -299,11 +311,17 @@ void UIManager::initializeImGui(GLFWwindow* window) {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     
-    // Setup Dear ImGui style
-    if (config::Config::instance().ui().theme == "dark") {
-        ImGui::StyleColorsDark();
+    // Setup Dear ImGui style via Theme
+    ui::Theme theme;
+    // Try loading theme from config directory
+    std::string themePath = config::ConfigManager::instance().getConfigPath("theme.ini");
+    std::string themeName = config::Config::instance().ui().theme;
+    if (!theme.loadFromFile(themePath, themeName)) {
+        // Fallback to built-in dark/light via config value
+        if (config::Config::instance().ui().theme == "dark") ImGui::StyleColorsDark();
+        else ImGui::StyleColorsLight();
     } else {
-        ImGui::StyleColorsLight();
+        theme.apply();
     }
     
     // Setup Platform/Renderer backends

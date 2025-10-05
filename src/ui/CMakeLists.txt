@@ -4,6 +4,8 @@ add_library(ui STATIC
     hud.cpp
     settings_menu.cpp
     key_bindings_menu.cpp
+    theme.hpp
+    theme.cpp
 )
 
 target_include_directories(ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
