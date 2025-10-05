@@ -28,6 +28,11 @@ void HUD::render() {
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
     if (ImGui::Begin("FPS", nullptr, window_flags)) {
         ImGui::Text("FPS: %.1f", fps_);
+        
+        // Show pause indicator if game is paused
+        if (UIManager::instance().isGamePaused()) {
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "PAUSED");
+        }
     }
     ImGui::End();
     

@@ -186,8 +186,10 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         // Update InputManager
         inputManager.update();
         
-        // Mouse look: only track mouse delta if no modal UI is active
-        bool isPaused = uiManager.shouldBlockInput();
+        // Check if game is paused
+        bool isPaused = uiManager.isGamePaused();
+        
+        // Mouse look: only track mouse delta if game is running
         {
             double x, y; glfwGetCursorPos(window, &x, &y);
             if (!haveLast) { lastX = x; lastY = y; haveLast = true; }
@@ -343,8 +345,10 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             }
         }
 
-        // FPS update accounting
-        frameCount++;
+        // FPS update accounting (only when game is running)
+        if (!isPaused) {
+            frameCount++;
+        }
         auto now = std::chrono::steady_clock::now();
         double dtFps = std::chrono::duration<double>(now - lastFpsTime).count();
         if (dtFps >= 1.0) {
@@ -356,8 +360,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         if (std::chrono::duration<double>(now - lastTitleTime).count() >= 0.25) {
             char title[256];
             if (showDebug) {
-                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f | cam(%.2f,%.2f,%.2f) look(%.2f,%.2f,%.2f)",
-                              fps, camX, camY, camZ, fwdX, fwdY, fwdZ);
+                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f | cam(%.2f,%.2f,%.2f) look(%.2f,%.2f,%.2f)%s",
+                             fps, camX, camY, camZ, fwdX, fwdY, fwdZ, isPaused ? " | PAUSED" : "");
                 if (hit.hit) {
                     char buf2[96];
                     std::snprintf(buf2, sizeof(buf2), " | hit(%d,%d,%d)", hit.x, hit.y, hit.z);
@@ -369,7 +373,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
                     }
                 }
             } else {
-                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f", fps);
+                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f%s", fps, isPaused ? " | PAUSED" : "");
             }
             glfwSetWindowTitle(window, title);
             lastTitleTime = now;

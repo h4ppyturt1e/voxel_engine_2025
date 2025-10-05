@@ -68,7 +68,7 @@ void KeyBindingsMenu::render() {
         
         ImGui::SameLine();
         if (ImGui::Button("Close", ImVec2(100, 0))) {
-            hide();
+            UIManager::instance().hideOverlay(getType());
         }
         
         if (is_remapping_) {

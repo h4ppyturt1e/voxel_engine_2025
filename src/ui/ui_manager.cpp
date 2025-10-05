@@ -117,6 +117,11 @@ void UIManager::showOverlay(OverlayType type) {
     size_t index = static_cast<size_t>(type);
     if (index >= overlay_visibility_.size()) return;
     
+    // If this overlay is modal, set game state to paused
+    if (overlay_modal_[index]) {
+        setGameState(GameState::Paused);
+    }
+    
     overlay_visibility_[index] = true;
     if (overlays_[index]) {
         overlays_[index]->show();
@@ -134,6 +139,11 @@ void UIManager::hideOverlay(OverlayType type) {
     overlay_visibility_[index] = false;
     if (overlays_[index]) {
         overlays_[index]->hide();
+    }
+    
+    // If this was a modal overlay, check if we should resume the game
+    if (overlay_modal_[index] && !isModalActive()) {
+        setGameState(GameState::Running);
     }
     
     if (overlay_callback_) {
@@ -176,6 +186,13 @@ bool UIManager::isModalActive() const {
 
 bool UIManager::shouldBlockInput() const {
     return isModalActive();
+}
+
+void UIManager::setGameState(GameState state) {
+    game_state_ = state;
+    std::string stateStr = (state == GameState::Running ? "Running" : 
+                           state == GameState::Paused ? "Paused" : "Menu");
+    core::log(core::LogLevel::Info, "Game state changed to: " + stateStr);
 }
 
 void UIManager::loadSettings() {

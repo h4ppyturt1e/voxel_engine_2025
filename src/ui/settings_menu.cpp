@@ -72,7 +72,7 @@ void SettingsMenu::render() {
         }
         ImGui::SameLine();
         if (ImGui::Button("Close", ImVec2(100, 0))) {
-            hide();
+            UIManager::instance().hideOverlay(getType());
         }
         
         if (settings_changed_) {

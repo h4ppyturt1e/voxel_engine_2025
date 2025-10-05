@@ -25,6 +25,12 @@ enum class OverlayType {
     KeyBindings
 };
 
+enum class GameState {
+    Running,
+    Paused,
+    Menu
+};
+
 class UIManager {
 public:
     static UIManager& instance();
@@ -48,6 +54,11 @@ public:
     bool isModalActive() const;
     bool shouldBlockInput() const;
     
+    // Game state management
+    GameState getGameState() const { return game_state_; }
+    void setGameState(GameState state);
+    bool isGamePaused() const { return game_state_ != GameState::Running; }
+    
     // Settings management
     void loadSettings();
     void saveSettings();
@@ -70,6 +81,8 @@ private:
     std::vector<bool> overlay_visibility_;
     std::vector<bool> overlay_modal_;
     OverlayType active_modal_ = OverlayType::HUD; // HUD is never modal
+    
+    GameState game_state_ = GameState::Running;
     
     OverlayEventCallback overlay_callback_;
     
