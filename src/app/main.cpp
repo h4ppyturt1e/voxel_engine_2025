@@ -92,8 +92,13 @@ int main() {
             }
         }
     }
-    c.saveToFile("chunk_0_0.vxl");
-    std::string chunkPath = std::filesystem::absolute("chunk_0_0.vxl").string();
+    // Get executable directory and create data subdirectory
+    std::string exePath = std::filesystem::current_path().string();
+    std::string dataDir = exePath + "/data";
+    std::filesystem::create_directories(dataDir);
+    std::string chunkFilename = dataDir + "/chunk_0_0.vxl";
+    c.saveToFile(chunkFilename.c_str());
+    std::string chunkPath = std::filesystem::absolute(chunkFilename).string();
     core::log(core::LogLevel::Info, "Saved chunk to " + chunkPath);
 
     // Build mesh for this chunk

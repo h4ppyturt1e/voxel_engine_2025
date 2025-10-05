@@ -3,11 +3,15 @@
 #ifdef VOXEL_WITH_GL
 #include <GLFW/glfw3.h>
 #include <GL/gl.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include "../core/logging.hpp"
 #include "../core/math.hpp"
 #include "../config/config.hpp"
 #include "../input/input_manager.hpp"
 #include "../config/config_manager.hpp"
+#include "../ui/ui_manager.hpp"
 #include "raycast.hpp"
 #include <cmath>
 #include <cstring>
@@ -47,27 +51,6 @@ static void drawWireCube(int x, int y, int z, float r, float g, float b) {
     glEnable(GL_DEPTH_TEST);
 }
 
-static void drawCrosshair(int w, int h) {
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	glOrtho(0, w, h, 0, -1, 1);
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	glDisable(GL_DEPTH_TEST);
-	glBegin(GL_LINES);
-	glColor3f(1,1,1);
-	int cx = w/2, cy = h/2; int s = 8;
-	glVertex2i(cx - s, cy); glVertex2i(cx + s, cy);
-	glVertex2i(cx, cy - s); glVertex2i(cx, cy + s);
-	glEnd();
-	glEnable(GL_DEPTH_TEST);
-	glPopMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
-}
 
 static std::string nowTimestamp() {
     using namespace std::chrono;
@@ -154,6 +137,13 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 
     glEnable(GL_DEPTH_TEST);
 
+    // Initialize UI Manager
+    ui::UIManager& uiManager = ui::UIManager::instance();
+    if (!uiManager.initialize(window)) {
+        core::log(core::LogLevel::Error, "Failed to initialize UIManager");
+        return -1;
+    }
+
     // simple camera state
     double lastX = 0.0, lastY = 0.0; bool haveLast = false;
     float yaw = 0.0f, pitch = -0.5f;
@@ -196,19 +186,24 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         // Update InputManager
         inputManager.update();
         
-        // Mouse look: always track mouse delta
+        // Check if game is paused
+        bool isPaused = uiManager.isGamePaused();
+        
+        // Mouse look: only track mouse delta if game is running
         {
             double x, y; glfwGetCursorPos(window, &x, &y);
             if (!haveLast) { lastX = x; lastY = y; haveLast = true; }
             double dx = x - lastX, dy = y - lastY; lastX = x; lastY = y;
             inputManager.setMouseDelta(static_cast<float>(dx), static_cast<float>(dy));
             
-            float mouseDeltaX, mouseDeltaY;
-            inputManager.getMouseDelta(mouseDeltaX, mouseDeltaY);
-            yaw   += mouseDeltaX;
-            pitch -= mouseDeltaY; // inverted mouse Y
-            if (pitch < -1.5f) pitch = -1.5f;
-            if (pitch > 1.5f)  pitch = 1.5f;
+            if (!isPaused) {
+                float mouseDeltaX, mouseDeltaY;
+                inputManager.getMouseDelta(mouseDeltaX, mouseDeltaY);
+                yaw   += mouseDeltaX;
+                pitch -= mouseDeltaY; // inverted mouse Y
+                if (pitch < -1.5f) pitch = -1.5f;
+                if (pitch > 1.5f)  pitch = 1.5f;
+            }
         }
         float moveSpeed = inputManager.isActionPressed(input::Action::FastMovement) ? 36.0f : 12.0f;
         moveSpeed *= deltaTime; // Apply delta time
@@ -222,13 +217,15 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         // right is horizontal strafe
         float rightX = -sy;
         float rightZ =  cy;
-        // WASD free-fly movement in facing direction
-        if (inputManager.isActionPressed(input::Action::MoveForward)) { camX += fwdX * moveSpeed; camY += fwdY * moveSpeed; camZ += fwdZ * moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveBackward)) { camX -= fwdX * moveSpeed; camY -= fwdY * moveSpeed; camZ -= fwdZ * moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveLeft)) { camX -= rightX * moveSpeed;                         camZ -= rightZ * moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveRight)) { camX += rightX * moveSpeed;                         camZ += rightZ * moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveUp)) { camY += moveSpeed; }
-        if (inputManager.isActionPressed(input::Action::MoveDown)) { camY -= moveSpeed; }
+        // WASD free-fly movement in facing direction (only if not paused)
+        if (!isPaused) {
+            if (inputManager.isActionPressed(input::Action::MoveForward)) { camX += fwdX * moveSpeed; camY += fwdY * moveSpeed; camZ += fwdZ * moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveBackward)) { camX -= fwdX * moveSpeed; camY -= fwdY * moveSpeed; camZ -= fwdZ * moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveLeft)) { camX -= rightX * moveSpeed;                         camZ -= rightZ * moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveRight)) { camX += rightX * moveSpeed;                         camZ += rightZ * moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveUp)) { camY += moveSpeed; }
+            if (inputManager.isActionPressed(input::Action::MoveDown)) { camY -= moveSpeed; }
+        }
         // Note: Q/E no longer dolly; they are used for edit actions below
 		int w,h; glfwGetFramebufferSize(window, &w, &h);
 		glViewport(0,0,w,h);
@@ -267,7 +264,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		glEnd();
 
         // Keyboard: recenter (R) to world origin view
-        static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevF4 = false, prevF5 = false, prevML=false, prevMR=false;
+        static bool prevR = false, prevF = false, prevQ = false, prevE = false, prevF3 = false, prevF4 = false, prevF5 = false, prevML=false, prevMR=false, prevESC=false;
         bool curR = inputManager.isActionPressed(input::Action::RecenterCamera);
         bool curF = inputManager.isActionPressed(input::Action::ToggleWireframe);
         bool curQ = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS; // Keep Q/E for now
@@ -277,6 +274,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         bool curF5 = inputManager.isActionPressed(input::Action::ToggleVSync);
         bool curML = inputManager.isActionPressed(input::Action::BreakBlock);
         bool curMR = inputManager.isActionPressed(input::Action::PlaceBlock);
+        bool curESC = inputManager.isActionPressed(input::Action::ToggleMenu);
         if (curR && !prevR) {
             camX = 8.0f; camY = 10.0f; camZ = 28.0f;
             float toX = 8.0f - camX, toY = 8.0f - camY, toZ = 8.0f - camZ;
@@ -302,14 +300,17 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             glfwSwapInterval(currentVsync ? 1 : 0);
             core::log(core::LogLevel::Info, currentVsync ? "VSync enabled" : "VSync disabled");
         }
-        prevR = curR; prevF = curF; prevF3 = curF3; prevF4 = curF4; prevF5 = curF5;
+        if (curESC && !prevESC) {
+            uiManager.toggleOverlay(ui::OverlayType::Settings);
+        }
+        prevR = curR; prevF = curF; prevF3 = curF3; prevF4 = curF4; prevF5 = curF5; prevESC = curESC;
 
-        // Raycast and edit (mouse buttons)
+        // Raycast and edit (mouse buttons) - only if not paused
         bool pressL = curML && !prevML;
         bool pressR = curMR && !prevMR;
         prevML = curML; prevMR = curMR; prevQ = curQ; prevE = curE;
         RayHit hit = raycastVoxel(chunk, camX, camY, camZ, fwdX, fwdY, fwdZ, 100.0f);
-        if (pressL || pressR) {
+        if ((pressL || pressR) && !isPaused) {
             if (pressL && hit.hit) {
                 int nonAir = 0;
                 for (int z=0; z<chunk.sizeZ(); ++z) for (int y=0; y<chunk.sizeY(); ++y) for (int x=0; x<chunk.sizeX(); ++x) if (chunk.at(x,y,z).type!=voxel::BlockType::Air) ++nonAir;
@@ -344,8 +345,10 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             }
         }
 
-        // FPS update accounting
-        frameCount++;
+        // FPS update accounting (only when game is running)
+        if (!isPaused) {
+            frameCount++;
+        }
         auto now = std::chrono::steady_clock::now();
         double dtFps = std::chrono::duration<double>(now - lastFpsTime).count();
         if (dtFps >= 1.0) {
@@ -357,8 +360,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         if (std::chrono::duration<double>(now - lastTitleTime).count() >= 0.25) {
             char title[256];
             if (showDebug) {
-                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f | cam(%.2f,%.2f,%.2f) look(%.2f,%.2f,%.2f)",
-                              fps, camX, camY, camZ, fwdX, fwdY, fwdZ);
+                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f | cam(%.2f,%.2f,%.2f) look(%.2f,%.2f,%.2f)%s",
+                             fps, camX, camY, camZ, fwdX, fwdY, fwdZ, isPaused ? " | PAUSED" : "");
                 if (hit.hit) {
                     char buf2[96];
                     std::snprintf(buf2, sizeof(buf2), " | hit(%d,%d,%d)", hit.x, hit.y, hit.z);
@@ -370,17 +373,23 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
                     }
                 }
             } else {
-                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f", fps);
+                std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f%s", fps, isPaused ? " | PAUSED" : "");
             }
             glfwSetWindowTitle(window, title);
             lastTitleTime = now;
         }
 
-        // Draw HUD crosshair and present
-        drawCrosshair(w,h);
+        // UI rendering
+        uiManager.beginFrame(deltaTime);
+        uiManager.endFrame();
+        
+        // Present frame
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    // Cleanup UI Manager (includes ImGui cleanup)
+    uiManager.shutdown();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

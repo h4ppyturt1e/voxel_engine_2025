@@ -17,10 +17,6 @@ bool World::hasChunk(int cx, int cz) const {
 	return chunks_.find(std::make_pair(cx, cz)) != chunks_.end();
 }
 
-bool World::unloadChunk(int cx, int cz) {
-	return chunks_.erase(std::make_pair(cx, cz)) > 0;
-}
-
 } // namespace voxel
 
 

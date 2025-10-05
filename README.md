@@ -4,11 +4,13 @@ A modern, modular C++ voxel engine with clean architecture and configurable inpu
 
 ## Features
 
-- **Modular Architecture**: Clean separation between voxel, mesh, render, input, and config systems
+- **UI System**: Dear ImGui integration with settings menu, HUD, and overlay management
+- **True Game Pause**: Advanced game state management that properly freezes world updates when paused
+- **Modular Architecture**: Clean separation between voxel, mesh, render, input, config, and UI systems
 - **Action-Based Input**: Configurable key bindings with hot reload support
 - **Greedy Meshing**: Efficient mesh generation with face culling
 - **OpenGL Rendering**: Modern graphics pipeline with raycast-based block editing
-- **Configuration System**: Runtime config files with defaults and user overrides
+- **Configuration System**: Runtime config files with defaults and user overrides for all game settings
 - **Comprehensive Logging**: Full file path logging with rotation and multiple levels
 
 ## Quick Start
@@ -38,6 +40,7 @@ src/
 ├── input/         # Input system with action mapping
 ├── mesh/          # Mesh generation (greedy meshing)
 ├── render/        # OpenGL rendering and raycast
+├── ui/            # UI system with Dear ImGui integration
 └── voxel/         # Voxel storage and world management
 ```
 
@@ -55,13 +58,18 @@ All controls are configurable via `input.ini`:
 - **Left Click**: Remove block
 - **Right Click**: Place block
 
+### UI & Menus
+- **ESC**: Open/close settings menu (pauses game)
+- **Settings Menu**: Graphics, Audio, UI, and Controls tabs (Apply/Save buttons not functional)
+- **Key Bindings Menu**: Placeholder remapping interface (not functional)
+- **Close Button**: Alternative way to close menus (also unpauses game)
+
 ### Debug & Settings
 - **F**: Toggle wireframe
 - **F3**: Toggle debug overlay
 - **F4**: Toggle mouse lock
 - **F5**: Toggle VSync
 - **R**: Recenter camera
-- **Escape**: Toggle menu (planned)
 
 ## Configuration
 
@@ -81,6 +89,20 @@ log.file=logs/engine.log
 
 # Graphics
 vsync=false
+graphics.resolution_width=800
+graphics.resolution_height=600
+graphics.quality=medium
+
+# UI
+ui.mouse_sensitivity=0.01
+ui.theme=dark
+ui.scale=1.0
+
+# Audio
+audio.master_volume=1.0
+audio.sfx_volume=1.0
+audio.music_volume=1.0
+audio.device=default
 ```
 
 #### `input.ini` - Input Bindings
