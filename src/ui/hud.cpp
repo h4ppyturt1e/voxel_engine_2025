@@ -8,6 +8,7 @@
 
 #include "../input/input_manager.hpp"
 #include "../core/logging.hpp"
+#include "../config/config.hpp"
 
 namespace ui {
 
@@ -50,6 +51,9 @@ void HUD::render() {
     if (show_debug_) {
         renderDebugInfo();
     }
+
+    // Build time bottom-right faded
+    renderBuildTime();
 #endif
 }
 
@@ -98,6 +102,18 @@ void HUD::renderDebugInfo() {
         ImGui::Text("F5 - Toggle VSync");
     }
     ImGui::End();
+#endif
+}
+
+void HUD::renderBuildTime() {
+#ifdef VOXEL_WITH_GL
+    // Draw as overlay text (no window background)
+    ImVec2 display = ImGui::GetIO().DisplaySize;
+    std::string text = std::string("Build: ") + config::Config::instance().buildTime();
+    ImVec2 size = ImGui::CalcTextSize(text.c_str());
+    ImVec2 pos(display.x - size.x - 10.0f, display.y - size.y - 10.0f);
+    ImU32 col = IM_COL32(255, 255, 255, (int)(255.0f * 0.35f));
+    ImGui::GetForegroundDrawList()->AddText(pos, col, text.c_str());
 #endif
 }
 

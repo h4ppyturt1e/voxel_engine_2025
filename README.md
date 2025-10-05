@@ -1,5 +1,9 @@
 # Voxel Engine 2025
 
+### Documentation rule
+- Last documented commit: 969c07c
+- When updating docs or changelog, always include the exact last documented commit hash at the top and update it.
+
 A modern, modular C++ voxel engine with clean architecture and configurable input system.
 
 ## Features
@@ -34,7 +38,6 @@ cmake --build . --config Release
 ```
 src/
 ├── app/           # Application entry point
-├── camera/        # Camera system and controls
 ├── config/        # Configuration management
 ├── core/          # Core utilities (logging, math)
 ├── input/         # Input system with action mapping
@@ -60,15 +63,13 @@ All controls are configurable via `input.ini`:
 
 ### UI & Menus
 - **ESC**: Open/close settings menu (pauses game)
-- **Settings Menu**: Graphics, Audio, UI, and Controls tabs (Apply/Save buttons not functional)
-- **Key Bindings Menu**: Placeholder remapping interface (not functional)
-- **Close Button**: Alternative way to close menus (also unpauses game)
+- **Close Button**: Also closes menu and unpauses
 
 ### Debug & Settings
 - **F**: Toggle wireframe
 - **F3**: Toggle debug overlay
-- **F4**: Toggle mouse lock
-- **F5**: Toggle VSync
+- **F4**: Toggle mouse lock (menu forces cursor visible; closes restore lock)
+- **F5**: Toggle VSync (applies immediately)
 - **R**: Recenter camera
 
 ## Configuration
@@ -98,11 +99,8 @@ ui.mouse_sensitivity=0.01
 ui.theme=dark
 ui.scale=1.0
 
-# Audio
-audio.master_volume=1.0
-audio.sfx_volume=1.0
-audio.music_volume=1.0
-audio.device=default
+# Build info (auto populated)
+build.time=
 ```
 
 #### `input.ini` - Input Bindings
@@ -117,9 +115,10 @@ MoveDown=CTRL
 FastMovement=SHIFT
 BreakBlock=MOUSE_LEFT
 PlaceBlock=MOUSE_RIGHT
-
-[settings]
-mouse_sensitivity=0.01
+ToggleDebug=F3
+ToggleMouseLock=F4
+ToggleVSync=F5
+RecenterCamera=R
 ```
 
 ### Hot Reload

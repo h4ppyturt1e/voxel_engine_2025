@@ -41,10 +41,7 @@ bool Config::loadFromFile(const std::string& path) {
 		else if (key == "ui.mouse_sensitivity") ui_.mouse_sensitivity = std::stof(val);
 		else if (key == "ui.theme") ui_.theme = val;
 		else if (key == "ui.scale") ui_.scale = std::stof(val);
-		else if (key == "audio.master_volume") audio_.master_volume = std::stof(val);
-		else if (key == "audio.sfx_volume") audio_.sfx_volume = std::stof(val);
-		else if (key == "audio.music_volume") audio_.music_volume = std::stof(val);
-		else if (key == "audio.device") audio_.device = val;
+	else if (key == "build.time") build_time_ = val;
 	}
 	return true;
 }

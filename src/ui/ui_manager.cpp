@@ -52,6 +52,9 @@ bool UIManager::initialize(void* glfwWindow) {
     
     // Initialize ImGui if GLFW window is provided
     if (glfwWindow) {
+#ifdef VOXEL_WITH_GL
+        glfw_window_ = static_cast<GLFWwindow*>(glfwWindow);
+#endif
         initializeImGui(static_cast<GLFWwindow*>(glfwWindow));
     }
     
@@ -120,6 +123,10 @@ void UIManager::showOverlay(OverlayType type) {
     // If this overlay is modal, set game state to paused
     if (overlay_modal_[index]) {
         setGameState(GameState::Paused);
+#ifdef VOXEL_WITH_GL
+        // When a modal opens, show cursor
+        setCursorLocked(false);
+#endif
     }
     
     overlay_visibility_[index] = true;
@@ -144,6 +151,10 @@ void UIManager::hideOverlay(OverlayType type) {
     // If this was a modal overlay, check if we should resume the game
     if (overlay_modal_[index] && !isModalActive()) {
         setGameState(GameState::Running);
+#ifdef VOXEL_WITH_GL
+        // When leaving modal state, restore cursor lock
+        setCursorLocked(true);
+#endif
     }
     
     if (overlay_callback_) {
@@ -218,6 +229,32 @@ void UIManager::applySettings() {
 void UIManager::setOverlayEventCallback(OverlayEventCallback callback) {
     overlay_callback_ = callback;
 }
+
+#ifdef VOXEL_WITH_GL
+void UIManager::setVSync(bool enabled) {
+    if (!glfw_window_) {
+        core::log(core::LogLevel::Warn, "VSync change requested but GLFW window is not set");
+        return;
+    }
+    glfwSwapInterval(enabled ? 1 : 0);
+    config::Config::instance().graphics().vsync = enabled;
+    core::log(core::LogLevel::Info, enabled ? "VSync enabled" : "VSync disabled");
+}
+
+void UIManager::setCursorLocked(bool locked) {
+    cursor_locked_ = locked;
+    applyCursorMode();
+}
+
+void UIManager::applyCursorMode() {
+    if (!glfw_window_) return;
+    glfwSetInputMode(glfw_window_, GLFW_CURSOR, cursor_locked_ ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+}
+#else
+void UIManager::setVSync(bool) {}
+void UIManager::setCursorLocked(bool) {}
+void UIManager::applyCursorMode() {}
+#endif
 
 #ifdef VOXEL_WITH_GL
 void UIManager::initializeImGui(GLFWwindow* window) {

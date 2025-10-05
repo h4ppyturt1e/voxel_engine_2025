@@ -33,6 +33,7 @@ public:
 	};
 	
 	const Graphics& graphics() const { return graphics_; }
+	Graphics& graphics() { return graphics_; }
 
 	struct UI {
 		float mouse_sensitivity {0.01f};
@@ -41,22 +42,18 @@ public:
 	};
 
 	const UI& ui() const { return ui_; }
+	UI& ui() { return ui_; }
 
-	struct Audio {
-		float master_volume {1.0f};
-		float sfx_volume {1.0f};
-		float music_volume {1.0f};
-		std::string device {"default"};
-	};
-
-	const Audio& audio() const { return audio_; }
+    // Build info
+    const std::string& buildTime() const { return build_time_; }
+    void setBuildTime(const std::string& t) { build_time_ = t; }
 
 private:
 	ChunkDimensions chunk_{};
 	Logging logging_{};
 	Graphics graphics_{};
 	UI ui_{};
-	Audio audio_{};
+    std::string build_time_{};
 };
 
 } // namespace config

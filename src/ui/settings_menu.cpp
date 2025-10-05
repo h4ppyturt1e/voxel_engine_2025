@@ -12,11 +12,17 @@
 #include "../input/input_manager.hpp"
 
 #include <sstream>
+#include <fstream>
 
 namespace ui {
 
 SettingsMenu::SettingsMenu() : Overlay(OverlayType::Settings, "Settings", true) {
     loadSettings();
+    
+    // Set up show callback to reset temp settings when menu is opened
+    setOnShowCallback([this]() {
+        resetTempSettings();
+    });
 }
 
 void SettingsMenu::render() {
@@ -38,11 +44,7 @@ void SettingsMenu::render() {
                 ImGui::EndTabItem();
             }
             
-            // Audio Tab
-            if (ImGui::BeginTabItem("Audio")) {
-                renderAudioSettings();
-                ImGui::EndTabItem();
-            }
+            // Audio removed
             
             // UI Tab
             if (ImGui::BeginTabItem("UI")) {
@@ -84,6 +86,7 @@ void SettingsMenu::render() {
 #endif
 }
 
+
 void SettingsMenu::update(float deltaTime) {
     // ESC handling is done globally by UIManager
 }
@@ -94,7 +97,7 @@ void SettingsMenu::renderGraphicsSettings() {
     ImGui::Separator();
     
     // VSync
-    if (ImGui::Checkbox("VSync", &settings_.vsync)) {
+    if (ImGui::Checkbox("VSync", &temp_settings_.vsync)) {
         settings_changed_ = true;
     }
     
@@ -102,8 +105,8 @@ void SettingsMenu::renderGraphicsSettings() {
     
     // Resolution
     ImGui::Text("Resolution:");
-    ImGui::InputInt("Width", &settings_.resolution_width, 1, 100);
-    ImGui::InputInt("Height", &settings_.resolution_height, 1, 100);
+    ImGui::InputInt("Width", &temp_settings_.resolution_width, 1, 100);
+    ImGui::InputInt("Height", &temp_settings_.resolution_height, 1, 100);
     if (ImGui::Button("Apply Resolution")) {
         settings_changed_ = true;
     }
@@ -114,64 +117,24 @@ void SettingsMenu::renderGraphicsSettings() {
     ImGui::Text("Quality:");
     const char* quality_items[] = { "Low", "Medium", "High", "Ultra" };
     int current_quality = 0;
-    if (settings_.quality == "low") current_quality = 0;
-    else if (settings_.quality == "medium") current_quality = 1;
-    else if (settings_.quality == "high") current_quality = 2;
-    else if (settings_.quality == "ultra") current_quality = 3;
+    if (temp_settings_.quality == "low") current_quality = 0;
+    else if (temp_settings_.quality == "medium") current_quality = 1;
+    else if (temp_settings_.quality == "high") current_quality = 2;
+    else if (temp_settings_.quality == "ultra") current_quality = 3;
     
     if (ImGui::Combo("##Quality", &current_quality, quality_items, 4)) {
         switch (current_quality) {
-            case 0: settings_.quality = "low"; break;
-            case 1: settings_.quality = "medium"; break;
-            case 2: settings_.quality = "high"; break;
-            case 3: settings_.quality = "ultra"; break;
+            case 0: temp_settings_.quality = "low"; break;
+            case 1: temp_settings_.quality = "medium"; break;
+            case 2: temp_settings_.quality = "high"; break;
+            case 3: temp_settings_.quality = "ultra"; break;
         }
         settings_changed_ = true;
     }
 #endif
 }
 
-void SettingsMenu::renderAudioSettings() {
-#ifdef VOXEL_WITH_GL
-    ImGui::Text("Audio Settings");
-    ImGui::Separator();
-    
-    // Master Volume
-    ImGui::Text("Master Volume: %.0f%%", settings_.master_volume * 100.0f);
-    if (ImGui::SliderFloat("##MasterVolume", &settings_.master_volume, 0.0f, 1.0f)) {
-        settings_changed_ = true;
-    }
-    
-    ImGui::Spacing();
-    
-    // SFX Volume
-    ImGui::Text("SFX Volume: %.0f%%", settings_.sfx_volume * 100.0f);
-    if (ImGui::SliderFloat("##SFXVolume", &settings_.sfx_volume, 0.0f, 1.0f)) {
-        settings_changed_ = true;
-    }
-    
-    ImGui::Spacing();
-    
-    // Music Volume
-    ImGui::Text("Music Volume: %.0f%%", settings_.music_volume * 100.0f);
-    if (ImGui::SliderFloat("##MusicVolume", &settings_.music_volume, 0.0f, 1.0f)) {
-        settings_changed_ = true;
-    }
-    
-    ImGui::Spacing();
-    
-    // Audio Device
-    ImGui::Text("Audio Device:");
-    char device_buffer[256];
-    strncpy(device_buffer, settings_.device.c_str(), sizeof(device_buffer) - 1);
-    device_buffer[sizeof(device_buffer) - 1] = '\0';
-    
-    if (ImGui::InputText("##AudioDevice", device_buffer, sizeof(device_buffer))) {
-        settings_.device = device_buffer;
-        settings_changed_ = true;
-    }
-#endif
-}
+// Audio UI removed
 
 void SettingsMenu::renderUISettings() {
 #ifdef VOXEL_WITH_GL
@@ -179,8 +142,8 @@ void SettingsMenu::renderUISettings() {
     ImGui::Separator();
     
     // Mouse Sensitivity
-    ImGui::Text("Mouse Sensitivity: %.3f", settings_.mouse_sensitivity);
-    if (ImGui::SliderFloat("##MouseSensitivity", &settings_.mouse_sensitivity, 0.001f, 0.1f, "%.3f")) {
+    ImGui::Text("Mouse Sensitivity: %.3f", temp_settings_.mouse_sensitivity);
+    if (ImGui::SliderFloat("##MouseSensitivity", &temp_settings_.mouse_sensitivity, 0.001f, 0.1f, "%.3f")) {
         settings_changed_ = true;
     }
     
@@ -189,18 +152,18 @@ void SettingsMenu::renderUISettings() {
     // UI Theme
     ImGui::Text("Theme:");
     const char* theme_items[] = { "Dark", "Light" };
-    int current_theme = (settings_.theme == "dark") ? 0 : 1;
+    int current_theme = (temp_settings_.theme == "dark") ? 0 : 1;
     
     if (ImGui::Combo("##Theme", &current_theme, theme_items, 2)) {
-        settings_.theme = (current_theme == 0) ? "dark" : "light";
+        temp_settings_.theme = (current_theme == 0) ? "dark" : "light";
         settings_changed_ = true;
     }
     
     ImGui::Spacing();
     
     // UI Scale
-    ImGui::Text("UI Scale: %.1f", settings_.scale);
-    if (ImGui::SliderFloat("##UIScale", &settings_.scale, 0.5f, 2.0f)) {
+    ImGui::Text("UI Scale: %.1f", temp_settings_.scale);
+    if (ImGui::SliderFloat("##UIScale", &temp_settings_.scale, 0.5f, 2.0f)) {
         settings_changed_ = true;
     }
 #endif
@@ -240,42 +203,133 @@ void SettingsMenu::saveSettings() {
     config::ConfigManager& configManager = config::ConfigManager::instance();
     std::string configPath = configManager.getConfigPath("engine.ini");
     
-    // TODO: Implement config file writing
-    // For now, just log the settings
-    core::log(core::LogLevel::Info, "Settings saved (not yet implemented)");
+    try {
+        std::ofstream file(configPath);
+        if (!file.is_open()) {
+            core::log(core::LogLevel::Error, "Failed to open config file for writing: " + configPath);
+            return;
+        }
+        
+        // Write header
+        file << "# Voxel Engine 2025 Configuration\n";
+        file << "chunk.size_x=8\n";
+        file << "chunk.size_y=8\n";
+        file << "chunk.size_z=8\n";
+        file << "log.level=debug\n";
+        file << "log.file=logs/engine.log\n\n";
+        
+        // Write graphics section
+        file << "[graphics]\n";
+        file << "vsync=" << (settings_.vsync ? "true" : "false") << "\n";
+        file << "# graphics.resolution_width=" << settings_.resolution_width << "\n";
+        file << "# graphics.resolution_height=" << settings_.resolution_height << "\n";
+        file << "# graphics.quality=" << settings_.quality << "\n\n";
+        
+        // Write UI section
+        file << "[ui]\n";
+        file << "ui.mouse_sensitivity=" << settings_.mouse_sensitivity << "\n";
+        file << "# ui.theme=" << settings_.theme << "\n";
+        file << "# ui.scale=" << settings_.scale << "\n\n";
+        
+        // Audio section removed
+        
+        file.close();
+        core::log(core::LogLevel::Info, "Settings saved to: " + configPath);
+        
+    } catch (const std::exception& e) {
+        core::log(core::LogLevel::Error, "Failed to save settings: " + std::string(e.what()));
+        return;
+    }
     
     settings_changed_ = false;
 }
 
 void SettingsMenu::loadSettings() {
     const auto& graphicsConfig = config::Config::instance().graphics();
-    const auto& audioConfig = config::Config::instance().audio();
     const auto& uiConfig = config::Config::instance().ui();
     
+    // Load applied settings
     settings_.vsync = graphicsConfig.vsync;
     settings_.resolution_width = graphicsConfig.resolution_width;
     settings_.resolution_height = graphicsConfig.resolution_height;
     settings_.quality = graphicsConfig.quality;
-    settings_.master_volume = audioConfig.master_volume;
-    settings_.sfx_volume = audioConfig.sfx_volume;
-    settings_.music_volume = audioConfig.music_volume;
-    settings_.device = audioConfig.device;
     settings_.mouse_sensitivity = uiConfig.mouse_sensitivity;
     settings_.theme = uiConfig.theme;
     settings_.scale = uiConfig.scale;
     
+    // Initialize temp settings to same values
+    temp_settings_.vsync = settings_.vsync;
+    temp_settings_.resolution_width = settings_.resolution_width;
+    temp_settings_.resolution_height = settings_.resolution_height;
+    temp_settings_.quality = settings_.quality;
+    temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
+    temp_settings_.theme = settings_.theme;
+    temp_settings_.scale = settings_.scale;
+    
     settings_changed_ = false;
 }
 
+void SettingsMenu::resetTempSettings() {
+    // Reset temp settings to current applied settings
+    temp_settings_.vsync = settings_.vsync;
+    temp_settings_.resolution_width = settings_.resolution_width;
+    temp_settings_.resolution_height = settings_.resolution_height;
+    temp_settings_.quality = settings_.quality;
+    temp_settings_.quality = settings_.quality;
+    temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
+    temp_settings_.theme = settings_.theme;
+    temp_settings_.scale = settings_.scale;
+    settings_changed_ = false;
+    
+    core::log(core::LogLevel::Info, "Temp settings reset to applied values");
+}
+
 void SettingsMenu::applySettings() {
+    // Copy temp settings to applied settings
+    settings_.vsync = temp_settings_.vsync;
+    settings_.resolution_width = temp_settings_.resolution_width;
+    settings_.resolution_height = temp_settings_.resolution_height;
+    settings_.quality = temp_settings_.quality;
+    settings_.mouse_sensitivity = temp_settings_.mouse_sensitivity;
+    settings_.theme = temp_settings_.theme;
+    settings_.scale = temp_settings_.scale;
+    
     saveSettings();
     
     // Apply immediate settings
-    // TODO: Apply graphics settings like resolution, VSync
-    // TODO: Apply audio settings
-    // TODO: Apply UI theme and scale
-    
-    core::log(core::LogLevel::Info, "Settings applied");
+    try {
+        // Update the config singleton with new values
+        config::Config& config = config::Config::instance();
+        
+        // Apply graphics settings (only VSync is implemented)
+        config.graphics().vsync = settings_.vsync;
+        // config.graphics().resolution_width = settings_.resolution_width; // Not implemented
+        // config.graphics().resolution_height = settings_.resolution_height; // Not implemented
+        // config.graphics().quality = settings_.quality; // Not implemented
+        
+        // Apply audio settings (none implemented yet)
+        // config.audio().master_volume = settings_.master_volume; // Not implemented
+        // config.audio().sfx_volume = settings_.sfx_volume; // Not implemented
+        // config.audio().music_volume = settings_.music_volume; // Not implemented
+        // config.audio().device = settings_.device; // Not implemented
+        
+        // Apply UI settings (only mouse sensitivity is implemented)
+        config.ui().mouse_sensitivity = settings_.mouse_sensitivity;
+        // config.ui().theme = settings_.theme; // Not implemented
+        // config.ui().scale = settings_.scale; // Not implemented
+        
+        // Apply mouse sensitivity to InputManager immediately
+        input::InputManager& inputManager = input::InputManager::instance();
+        inputManager.setMouseSensitivity(settings_.mouse_sensitivity);
+
+        // Apply VSync immediately via UIManager
+        ui::UIManager::instance().setVSync(settings_.vsync);
+
+        core::log(core::LogLevel::Info, "Settings applied successfully");
+        
+    } catch (const std::exception& e) {
+        core::log(core::LogLevel::Error, "Failed to apply settings: " + std::string(e.what()));
+    }
 }
 
 } // namespace ui
