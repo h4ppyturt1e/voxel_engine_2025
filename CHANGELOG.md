@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Settings menu with Graphics, Audio, UI, and Controls tabs (Apply button non-functional)
   - Key bindings menu with placeholder remapping functionality
 - **Advanced Game State Management**
-  - True game pause system that freezes world updates
+  - True game pause system with Running/Paused states
   - Automatic pause/resume when opening/closing modal menus
   - Visual pause indicators in window title and HUD
   - Game state logging for debugging
@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Centralized UI rendering through UIManager instead of direct ImGui calls
   - Updated render loop to support UI overlay management
 - **Game State Architecture**
-  - Implemented proper game state management (Running/Paused/Menu)
+  - Implemented proper game state management (Running/Paused)
   - Modified input handling to respect game pause state
   - Updated FPS calculation to pause when game is paused
   - Enhanced window title to show pause state

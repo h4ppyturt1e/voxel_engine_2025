@@ -190,8 +190,7 @@ bool UIManager::shouldBlockInput() const {
 
 void UIManager::setGameState(GameState state) {
     game_state_ = state;
-    std::string stateStr = (state == GameState::Running ? "Running" : 
-                           state == GameState::Paused ? "Paused" : "Menu");
+    std::string stateStr = (state == GameState::Running ? "Running" : "Paused");
     core::log(core::LogLevel::Info, "Game state changed to: " + stateStr);
 }
 

@@ -19,16 +19,13 @@ class Overlay;
 
 enum class OverlayType {
     HUD,
-    Menu,
-    Dialog,
     Settings,
     KeyBindings
 };
 
 enum class GameState {
     Running,
-    Paused,
-    Menu
+    Paused
 };
 
 class UIManager {
