@@ -143,6 +143,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         core::log(core::LogLevel::Error, "Failed to initialize UIManager");
         return -1;
     }
+    // Start with cursor locked (hidden)
+    uiManager.setCursorLocked(true);
 
     // simple camera state
     double lastX = 0.0, lastY = 0.0; bool haveLast = false;
@@ -162,7 +164,6 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
     }
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     // Build initial mesh from chunk (0,0)
     voxel::Chunk& chunk = world.getOrCreateChunk(0,0);
@@ -292,7 +293,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         static bool mouseLocked = false;
         if (curF4 && !prevF4) {
             mouseLocked = !mouseLocked;
-            glfwSetInputMode(window, GLFW_CURSOR, mouseLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+            uiManager.setCursorLocked(mouseLocked);
         }
         static bool currentVsync = config::Config::instance().graphics().vsync;
         if (curF5 && !prevF5) {

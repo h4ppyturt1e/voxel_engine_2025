@@ -63,6 +63,12 @@ public:
 
     // Graphics runtime controls
     void setVSync(bool enabled);
+
+    // Cursor lock controls
+    void setCursorLocked(bool locked);
+    bool isCursorLocked() const {
+        return cursor_locked_;
+    }
     
     // Event system
     using OverlayEventCallback = std::function<void(OverlayType, bool)>;
@@ -76,6 +82,7 @@ private:
     
     void initializeImGui(GLFWwindow* window);
     void shutdownImGui();
+    void applyCursorMode();
     
     std::vector<std::unique_ptr<Overlay>> overlays_;
     std::vector<bool> overlay_visibility_;
@@ -91,6 +98,8 @@ private:
 #ifdef VOXEL_WITH_GL
     GLFWwindow* glfw_window_ = nullptr;
 #endif
+
+    bool cursor_locked_ = false;
 };
 
 } // namespace ui
