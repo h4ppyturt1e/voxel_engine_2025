@@ -95,9 +95,18 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 	
     int initW = config::Config::instance().graphics().resolution_width;
     int initH = config::Config::instance().graphics().resolution_height;
-    if (initW <= 0) initW = 800;
-    if (initH <= 0) initH = 600;
-    GLFWwindow* window = glfwCreateWindow(initW, initH, "Voxel Demo", nullptr, nullptr);
+    GLFWmonitor* primary = glfwGetPrimaryMonitor();
+    const GLFWvidmode* pmode = primary ? glfwGetVideoMode(primary) : nullptr;
+    if (initW <= 0) initW = pmode ? pmode->width : 1280;
+    if (initH <= 0) initH = pmode ? pmode->height : 720;
+    GLFWmonitor* monitor = nullptr;
+    bool startFullscreen = config::Config::instance().graphics().fullscreen;
+    if (startFullscreen) {
+        monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+        if (mode) { initW = mode->width; initH = mode->height; }
+    }
+    GLFWwindow* window = glfwCreateWindow(initW, initH, "Voxel Demo", monitor, nullptr);
 	if (!window) {
 		const char* disp = std::getenv("DISPLAY");
 		std::string d = disp ? disp : "(null)";
@@ -105,7 +114,13 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		glfwTerminate();
 		return -1;
 	}
-	glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(window);
+    {
+        int winW = 0, winH = 0; glfwGetWindowSize(window, &winW, &winH);
+        bool fs = config::Config::instance().graphics().fullscreen;
+        core::log(core::LogLevel::Info, "Startup window size: " + std::to_string(winW) + "x" + std::to_string(winH) +
+                  ", config: " + std::to_string(initW) + "x" + std::to_string(initH) + (fs ? " (fullscreen)" : " (windowed)"));
+    }
     
     // Initialize ConfigManager
     config::ConfigManager& configManager = config::ConfigManager::instance();

@@ -114,13 +114,50 @@ void SettingsMenu::renderGraphicsSettings() {
     
     ImGui::Spacing();
     
-    // Resolution (apply to window immediately on Apply)
+    // Resolution UI: Aspect ratio + resolution lists and fullscreen toggle
+    ImGui::Text("Aspect Ratio:");
+    static const char* aspect_labels[] = { "16:9", "16:10", "4:3", "21:9", "32:9" };
+    // Initialize aspect_index_ based on current resolution
+    int curW = temp_settings_.resolution_width;
+    int curH = temp_settings_.resolution_height;
+    float ar = (curH > 0) ? ((float)curW / (float)curH) : 16.0f/9.0f;
+    int inferredAspect = 0;
+    if (std::fabs(ar - (16.0f/9.0f)) < 0.05f) inferredAspect = 0;
+    else if (std::fabs(ar - (16.0f/10.0f)) < 0.05f) inferredAspect = 1;
+    else if (std::fabs(ar - (4.0f/3.0f)) < 0.05f) inferredAspect = 2;
+    else if (std::fabs(ar - (21.0f/9.0f)) < 0.08f) inferredAspect = 3;
+    else if (std::fabs(ar - (32.0f/9.0f)) < 0.1f) inferredAspect = 4;
+    if (aspect_index_ < 0 || aspect_index_ > 4) aspect_index_ = inferredAspect; // first open
+    ImGui::Combo("##Aspect", &aspect_index_, aspect_labels, IM_ARRAYSIZE(aspect_labels));
     ImGui::Text("Resolution:");
-    ImGui::InputInt("Width", &temp_settings_.resolution_width, 1, 100);
-    ImGui::InputInt("Height", &temp_settings_.resolution_height, 1, 100);
-    if (temp_settings_.resolution_width < 100) temp_settings_.resolution_width = 100;
-    if (temp_settings_.resolution_height < 100) temp_settings_.resolution_height = 100;
-    ImGui::TextDisabled("Applied on Apply");
+    // Common resolutions (filtered by aspect informally)
+    static const char* res_169[] = { "1280x720", "1600x900", "1920x1080", "2560x1440", "3840x2160" };
+    static const char* res_1610[] = { "1280x800", "1440x900", "1680x1050", "1920x1200", "2560x1600" };
+    static const char* res_43[] = { "1024x768", "1280x960", "1600x1200" };
+    static const char* res_219[] = { "2560x1080", "3440x1440", "3840x1600" };
+    static const char* res_329[] = { "5120x1440", "3840x1080" };
+    const char** res_list = res_169; int res_count = IM_ARRAYSIZE(res_169);
+    if (aspect_index_==1) { res_list = res_1610; res_count = IM_ARRAYSIZE(res_1610);} else if (aspect_index_==2) { res_list = res_43; res_count = IM_ARRAYSIZE(res_43);} else if (aspect_index_==3) { res_list = res_219; res_count = IM_ARRAYSIZE(res_219);} else if (aspect_index_==4) { res_list = res_329; res_count = IM_ARRAYSIZE(res_329);} 
+    // On first open, try to match current resolution to res_index_
+    if (res_index_ == 0) {
+        for (int i = 0; i < res_count; ++i) {
+            int w=0,h=0; if (std::sscanf(res_list[i], "%dx%d", &w, &h)==2) {
+                if (w == curW && h == curH) { res_index_ = i; break; }
+            }
+        }
+    }
+    ImGui::Combo("##Resolution", &res_index_, res_list, res_count);
+    if (ImGui::Checkbox("Fullscreen", &temp_settings_.fullscreen)) { settings_changed_ = true; }
+    // Preview selected resolution into temp settings
+    int selW = temp_settings_.resolution_width, selH = temp_settings_.resolution_height;
+    {
+        const char* sel = res_list[(res_index_>=0 && res_index_<res_count)?res_index_:0];
+        int w=0,h=0; if (std::sscanf(sel, "%dx%d", &w, &h)==2) { selW = w; selH = h; }
+    }
+    temp_settings_.resolution_width = selW;
+    temp_settings_.resolution_height = selH;
+    // Removed per-section Apply; master Apply button handles it
+    // Persist fullscreen into settings on apply path below
     
     ImGui::Spacing();
     
@@ -152,10 +189,16 @@ void SettingsMenu::renderUISettings() {
     ImGui::Text("UI Settings");
     ImGui::Separator();
     
-    // Mouse Sensitivity
-    ImGui::Text("Mouse Sensitivity: %.3f", temp_settings_.mouse_sensitivity);
-    if (ImGui::SliderFloat("##MouseSensitivity", &temp_settings_.mouse_sensitivity, 0.001f, 0.1f, "%.3f")) {
+    // Mouse Sensitivity: 0-100% mapped to 0.001-0.08
+    if (temp_settings_.mouse_sensitivity <= 0.0001f) temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
+    float sensMin = 0.001f, sensMax = 0.08f;
+    temp_settings_.mouse_sensitivity_percent = (temp_settings_.mouse_sensitivity - sensMin) / (sensMax - sensMin) * 100.0f;
+    if (temp_settings_.mouse_sensitivity_percent < 0.0f) temp_settings_.mouse_sensitivity_percent = 0.0f;
+    if (temp_settings_.mouse_sensitivity_percent > 100.0f) temp_settings_.mouse_sensitivity_percent = 100.0f;
+    ImGui::Text("Mouse Sensitivity: %.0f%%", temp_settings_.mouse_sensitivity_percent);
+    if (ImGui::SliderFloat("##MouseSensitivityPercent", &temp_settings_.mouse_sensitivity_percent, 0.0f, 100.0f, "%.0f%%")) {
         settings_changed_ = true;
+        temp_settings_.mouse_sensitivity = sensMin + (sensMax - sensMin) * (temp_settings_.mouse_sensitivity_percent / 100.0f);
     }
     
     ImGui::Spacing();
@@ -242,8 +285,9 @@ void SettingsMenu::saveSettings() {
         // Write graphics section
         file << "[graphics]\n";
         file << "vsync=" << (settings_.vsync ? "true" : "false") << "\n";
-        file << "# graphics.resolution_width=" << settings_.resolution_width << "\n";
-        file << "# graphics.resolution_height=" << settings_.resolution_height << "\n";
+        file << "graphics.resolution_width=" << settings_.resolution_width << "\n";
+        file << "graphics.resolution_height=" << settings_.resolution_height << "\n";
+        file << "graphics.fullscreen=" << (settings_.fullscreen ? "true" : "false") << "\n";
         file << "# graphics.quality=" << settings_.quality << "\n\n";
         
         // Write UI section
@@ -282,6 +326,7 @@ void SettingsMenu::loadSettings() {
     settings_.crosshair_enabled = uiConfig.crosshair_enabled;
     // size removed
     settings_.crosshair_percent = uiConfig.crosshair_percent;
+    settings_.fullscreen = config::Config::instance().graphics().fullscreen;
     
     // Initialize temp settings to same values
     temp_settings_.vsync = settings_.vsync;
@@ -289,11 +334,13 @@ void SettingsMenu::loadSettings() {
     temp_settings_.resolution_height = settings_.resolution_height;
     temp_settings_.quality = settings_.quality;
     temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
+    temp_settings_.mouse_sensitivity_percent = (settings_.mouse_sensitivity - 0.001f) / (0.08f - 0.001f) * 100.0f;
     temp_settings_.theme = settings_.theme;
     temp_settings_.scale = settings_.scale;
     temp_settings_.crosshair_enabled = settings_.crosshair_enabled;
     // size removed
     temp_settings_.crosshair_percent = settings_.crosshair_percent;
+    temp_settings_.fullscreen = settings_.fullscreen;
     temp_settings_.crosshair_enabled = settings_.crosshair_enabled;
     
     settings_changed_ = false;
@@ -307,6 +354,10 @@ void SettingsMenu::resetTempSettings() {
     temp_settings_.quality = settings_.quality;
     temp_settings_.quality = settings_.quality;
     temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
+    temp_settings_.mouse_sensitivity_percent = (settings_.mouse_sensitivity - 0.0001f) / (0.08f - 0.0001f) * 100.0f;
+    temp_settings_.theme = settings_.theme;
+    temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
+    temp_settings_.mouse_sensitivity_percent = (settings_.mouse_sensitivity - 0.0001f) / (0.08f - 0.0001f) * 100.0f;
     temp_settings_.theme = settings_.theme;
     temp_settings_.scale = settings_.scale;
     settings_changed_ = false;
@@ -326,6 +377,7 @@ void SettingsMenu::applySettings() {
     settings_.crosshair_enabled = temp_settings_.crosshair_enabled;
     // size removed
     settings_.crosshair_percent = temp_settings_.crosshair_percent;
+    settings_.fullscreen = temp_settings_.fullscreen;
     
     saveSettings();
     
@@ -338,6 +390,7 @@ void SettingsMenu::applySettings() {
         config.graphics().vsync = settings_.vsync;
         config.graphics().resolution_width = settings_.resolution_width;
         config.graphics().resolution_height = settings_.resolution_height;
+        config.graphics().fullscreen = settings_.fullscreen;
         // config.graphics().quality = settings_.quality; // Not implemented
         
         // Apply audio settings (none implemented yet)
@@ -361,6 +414,7 @@ void SettingsMenu::applySettings() {
         ui::UIManager::instance().setVSync(settings_.vsync);
         ui::UIManager::instance().applySettings();
         ui::UIManager::instance().setWindowSize(settings_.resolution_width, settings_.resolution_height);
+        ui::UIManager::instance().setFullscreen(config.graphics().fullscreen);
 
         core::log(core::LogLevel::Info, "Settings applied successfully");
         

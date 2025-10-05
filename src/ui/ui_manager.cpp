@@ -257,6 +257,23 @@ void UIManager::setWindowSize(int width, int height) {
     glfwSetWindowSize(glfw_window_, width, height);
 }
 
+void UIManager::setFullscreen(bool enabled) {
+    if (!glfw_window_) return;
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+    if (enabled && monitor && mode) {
+        glfwSetWindowMonitor(glfw_window_, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    } else {
+        // windowed: center on screen with current config size
+        int w = config::Config::instance().graphics().resolution_width;
+        int h = config::Config::instance().graphics().resolution_height;
+        if (w < 100) w = 100; if (h < 100) h = 100;
+        int x = 100, y = 100;
+        if (monitor && mode) { x = (mode->width - w) / 2; y = (mode->height - h) / 2; }
+        glfwSetWindowMonitor(glfw_window_, nullptr, x, y, w, h, 0);
+    }
+}
+
 void UIManager::setCursorLocked(bool locked) {
     cursor_locked_ = locked;
     applyCursorMode();
@@ -269,6 +286,7 @@ void UIManager::applyCursorMode() {
 #else
 void UIManager::setVSync(bool) {}
 void UIManager::setWindowSize(int, int) {}
+void UIManager::setFullscreen(bool) {}
 void UIManager::setCursorLocked(bool) {}
 void UIManager::applyCursorMode() {}
 #endif

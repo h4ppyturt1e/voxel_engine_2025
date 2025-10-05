@@ -38,6 +38,7 @@ bool Config::loadFromFile(const std::string& path) {
 		else if (key == "graphics.resolution_width") graphics_.resolution_width = std::stoi(val);
 		else if (key == "graphics.resolution_height") graphics_.resolution_height = std::stoi(val);
 		else if (key == "graphics.quality") graphics_.quality = val;
+		else if (key == "graphics.fullscreen") graphics_.fullscreen = (val == "true" || val == "1");
 		else if (key == "ui.mouse_sensitivity") ui_.mouse_sensitivity = std::stof(val);
 		else if (key == "ui.theme") ui_.theme = val;
 		else if (key == "ui.scale") ui_.scale = std::stof(val);

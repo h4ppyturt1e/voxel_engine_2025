@@ -27,9 +27,10 @@ public:
 
 	struct Graphics {
 		bool vsync {true};
-		int resolution_width {800};
-		int resolution_height {600};
+		int resolution_width {-1};
+		int resolution_height {-1};
 		std::string quality {"medium"};
+		bool fullscreen {false};
 	};
 	
 	const Graphics& graphics() const { return graphics_; }

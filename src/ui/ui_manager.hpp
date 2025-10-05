@@ -64,6 +64,7 @@ public:
     // Graphics runtime controls
     void setVSync(bool enabled);
     void setWindowSize(int width, int height);
+    void setFullscreen(bool enabled);
 
     // Cursor lock controls
     void setCursorLocked(bool locked);
