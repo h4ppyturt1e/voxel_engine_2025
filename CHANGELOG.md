@@ -1,7 +1,7 @@
 # Changelog
 
 ### Documentation rule
-- Last documented commit: 969c07c
+- Last documented commit: bdb59f6
 - When updating docs or changelog, always include the exact last documented commit hash at the top and update it.
 
 All notable changes to this project will be documented in this file.
@@ -11,25 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Last documented commit: 969c07c
+- Last documented commit: bdb59f6
 
+### Summary of 1.0.0 -> 1.1.0
+- Added Dear ImGui UI system with `UIManager`, `Overlay` base, `HUD`, `Settings`, `KeyBindings` overlays
+- Implemented modal overlays that pause the game and block gameplay input
+- Centered settings menu; Close button unpauses
+- Runtime settings: Apply updates mouse sensitivity; VSync applies immediately; temp settings revert on close
+- Unified sensitivity source to `engine.ini`; cleaned overlapping INI settings
+- Cursor behavior: start locked; menu shows cursor; closing restores lock; F4 toggles via UI manager
+- HUD: added faded build time text
+- Removed audio settings/UI; removed camera module and other dead/unused code
+
+## [1.1.0] - 2025-10-05
 ### Added
-- Build time displayed in HUD bottom-right as faded text (858ffd5)
-- Runtime VSync application via UI and F5 toggle (63a4727, 858ffd5)
-- Cursor lock management through UIManager; menu shows cursor, closes re-lock (969c07c)
+- Menu behavior updates: menu open centers UI, pauses game, and shows cursor.
+- HUD shows faded build time text.
 
 ### Changed
-- Sensitivity unified to use `engine.ini` as source of truth (63a4727)
-- INI cleanup: removed overlap; moved settings from `input.ini` to `engine.ini` (63a4727)
+- VSync applies immediately from settings and F5 toggle; sensitivity unified to engine.ini.
+- Cursor starts locked on launch; menu lifecycle manages cursor visibility/lock.
 
 ### Removed
-- Audio settings and UI (858ffd5)
-- Dead code: camera module, unused enums/methods/properties (d6f4b5a, 2c315f6)
+- Audio settings and related UI.
 
 ### Fixed
-- Settings menu now applies only on Apply; temp values reset on reopen (63a4727)
-- Black background artifact replaced with overlay text for build time (858ffd5)
-- VSync state persisted across toggles and reflected in config (63a4727, 858ffd5)
+- Close button now unpauses game; settings apply only on Apply and revert on close.
 
 ## [1.0.0] - 2025-10-03
 
