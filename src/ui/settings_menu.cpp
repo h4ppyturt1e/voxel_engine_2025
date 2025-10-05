@@ -29,8 +29,19 @@ void SettingsMenu::render() {
     if (!isVisible()) return;
     
 #ifdef VOXEL_WITH_GL
-    // Create a centered modal window
-    ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_Always);
+    // Create a centered modal window; size scales with UI scale and clamps to display
+    ImVec2 display = ImGui::GetIO().DisplaySize;
+    float scale = config::Config::instance().ui().scale;
+    float baseW = 600.0f, baseH = 500.0f;
+    float w = baseW * scale;
+    float h = baseH * scale;
+    // Clamp to not exceed display size (leave small margin)
+    const float margin = 20.0f;
+    if (w > display.x - margin) w = display.x - margin;
+    if (h > display.y - margin) h = display.y - margin;
+    if (w < 100.0f) w = 100.0f;
+    if (h < 100.0f) h = 100.0f;
+    ImGui::SetNextWindowSize(ImVec2(w, h), ImGuiCond_Always);
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     
@@ -103,13 +114,13 @@ void SettingsMenu::renderGraphicsSettings() {
     
     ImGui::Spacing();
     
-    // Resolution
+    // Resolution (apply to window immediately on Apply)
     ImGui::Text("Resolution:");
     ImGui::InputInt("Width", &temp_settings_.resolution_width, 1, 100);
     ImGui::InputInt("Height", &temp_settings_.resolution_height, 1, 100);
-    if (ImGui::Button("Apply Resolution")) {
-        settings_changed_ = true;
-    }
+    if (temp_settings_.resolution_width < 100) temp_settings_.resolution_width = 100;
+    if (temp_settings_.resolution_height < 100) temp_settings_.resolution_height = 100;
+    ImGui::TextDisabled("Applied on Apply");
     
     ImGui::Spacing();
     
@@ -240,8 +251,8 @@ void SettingsMenu::saveSettings() {
         file << "ui.mouse_sensitivity=" << settings_.mouse_sensitivity << "\n";
         file << "ui.crosshair_enabled=" << (settings_.crosshair_enabled ? "true" : "false") << "\n";
         file << "ui.crosshair_percent=" << settings_.crosshair_percent << "\n";
-        file << "# ui.theme=" << settings_.theme << "\n";
-        file << "# ui.scale=" << settings_.scale << "\n\n";
+        file << "ui.theme=" << settings_.theme << "\n";
+        file << "ui.scale=" << settings_.scale << "\n\n";
         
         // Audio section removed
         
@@ -323,10 +334,10 @@ void SettingsMenu::applySettings() {
         // Update the config singleton with new values
         config::Config& config = config::Config::instance();
         
-        // Apply graphics settings (only VSync is implemented)
+        // Apply graphics settings
         config.graphics().vsync = settings_.vsync;
-        // config.graphics().resolution_width = settings_.resolution_width; // Not implemented
-        // config.graphics().resolution_height = settings_.resolution_height; // Not implemented
+        config.graphics().resolution_width = settings_.resolution_width;
+        config.graphics().resolution_height = settings_.resolution_height;
         // config.graphics().quality = settings_.quality; // Not implemented
         
         // Apply audio settings (none implemented yet)
@@ -335,20 +346,21 @@ void SettingsMenu::applySettings() {
         // config.audio().music_volume = settings_.music_volume; // Not implemented
         // config.audio().device = settings_.device; // Not implemented
         
-        // Apply UI settings (only mouse sensitivity is implemented)
+        // Apply UI settings
         config.ui().mouse_sensitivity = settings_.mouse_sensitivity;
         config.ui().crosshair_enabled = settings_.crosshair_enabled;
-        // size removed
         config.ui().crosshair_percent = settings_.crosshair_percent;
-        // config.ui().theme = settings_.theme; // Not implemented
-        // config.ui().scale = settings_.scale; // Not implemented
+        config.ui().theme = settings_.theme;
+        config.ui().scale = settings_.scale;
         
         // Apply mouse sensitivity to InputManager immediately
         input::InputManager& inputManager = input::InputManager::instance();
         inputManager.setMouseSensitivity(settings_.mouse_sensitivity);
 
-        // Apply VSync immediately via UIManager
+        // Apply VSync and UI appearance immediately, and update window size
         ui::UIManager::instance().setVSync(settings_.vsync);
+        ui::UIManager::instance().applySettings();
+        ui::UIManager::instance().setWindowSize(settings_.resolution_width, settings_.resolution_height);
 
         core::log(core::LogLevel::Info, "Settings applied successfully");
         

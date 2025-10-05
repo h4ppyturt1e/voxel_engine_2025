@@ -213,6 +213,12 @@ void UIManager::loadSettings() {
 #ifdef VOXEL_WITH_GL
     if (ImGui::GetCurrentContext()) {
         ImGui::GetIO().FontGlobalScale = uiConfig.scale;
+        // Apply theme dynamically
+        if (uiConfig.theme == "dark") {
+            ImGui::StyleColorsDark();
+        } else {
+            ImGui::StyleColorsLight();
+        }
     }
 #endif
 }
@@ -241,6 +247,16 @@ void UIManager::setVSync(bool enabled) {
     core::log(core::LogLevel::Info, enabled ? "VSync enabled" : "VSync disabled");
 }
 
+void UIManager::setWindowSize(int width, int height) {
+    if (!glfw_window_) {
+        core::log(core::LogLevel::Warn, "Window resize requested but GLFW window is not set");
+        return;
+    }
+    if (width < 100) width = 100;
+    if (height < 100) height = 100;
+    glfwSetWindowSize(glfw_window_, width, height);
+}
+
 void UIManager::setCursorLocked(bool locked) {
     cursor_locked_ = locked;
     applyCursorMode();
@@ -252,6 +268,7 @@ void UIManager::applyCursorMode() {
 }
 #else
 void UIManager::setVSync(bool) {}
+void UIManager::setWindowSize(int, int) {}
 void UIManager::setCursorLocked(bool) {}
 void UIManager::applyCursorMode() {}
 #endif

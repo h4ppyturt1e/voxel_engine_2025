@@ -93,7 +93,11 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		return -1;
 	}
 	
-	GLFWwindow* window = glfwCreateWindow(800, 600, "Voxel Demo", nullptr, nullptr);
+    int initW = config::Config::instance().graphics().resolution_width;
+    int initH = config::Config::instance().graphics().resolution_height;
+    if (initW <= 0) initW = 800;
+    if (initH <= 0) initH = 600;
+    GLFWwindow* window = glfwCreateWindow(initW, initH, "Voxel Demo", nullptr, nullptr);
 	if (!window) {
 		const char* disp = std::getenv("DISPLAY");
 		std::string d = disp ? disp : "(null)";
@@ -143,6 +147,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         core::log(core::LogLevel::Error, "Failed to initialize UIManager");
         return -1;
     }
+    // Apply UI settings at startup (scale/theme)
+    uiManager.applySettings();
     // Start with cursor locked (hidden)
     uiManager.setCursorLocked(true);
 
@@ -164,6 +170,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
     }
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
+    // Make window non-resizable
+    glfwSetWindowAttrib(window, GLFW_RESIZABLE, GLFW_FALSE);
 
     // Build initial mesh from chunk (0,0)
     voxel::Chunk& chunk = world.getOrCreateChunk(0,0);
