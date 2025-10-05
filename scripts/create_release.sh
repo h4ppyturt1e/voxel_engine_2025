@@ -20,25 +20,36 @@ fi
 
 echo "Creating release version $VERSION..."
 
+SRC_BIN_DIR="$BUILD_DIR/bin"
+
 # Create versioned directory
 RELEASE_PATH="$RELEASE_DIR/voxel_engine_$VERSION"
 mkdir -p "$RELEASE_PATH"
 
-# Copy executable
-if [ -f "$BUILD_DIR/bin/voxel_app" ]; then
-    cp "$BUILD_DIR/bin/voxel_app" "$RELEASE_PATH/voxel_app"
-    chmod +x "$RELEASE_PATH/voxel_app"
+# Copy entire compiled bin contents (exe, config, assets, etc.)
+if [ -d "$SRC_BIN_DIR" ]; then
+    echo "Copying files from $SRC_BIN_DIR to $RELEASE_PATH ..."
+    cp -R "$SRC_BIN_DIR/." "$RELEASE_PATH/"
 else
-    echo "Error: Executable not found at $BUILD_DIR/bin/voxel_app"
+    echo "Error: Source bin directory not found: $SRC_BIN_DIR"
     exit 1
 fi
 
-# Copy config files
-cp "engine.ini" "$RELEASE_PATH/engine.ini"
+# Include metadata files at release root
 cp "VERSION" "$RELEASE_PATH/VERSION"
-
-# Copy README
 cp "README.md" "$RELEASE_PATH/README.md"
+
+# Copy default configs to release root (for first-run)
+if [ -d "default_config" ]; then
+  mkdir -p "$RELEASE_PATH/default_config"
+  cp -R "default_config/." "$RELEASE_PATH/default_config/"
+fi
+
+# Ensure legacy path expected by ConfigManager exists: build/bin/Release/config
+if [ -d "$RELEASE_PATH/config" ]; then
+  mkdir -p "$RELEASE_PATH/build/bin/Release/config"
+  cp -R "$RELEASE_PATH/config/." "$RELEASE_PATH/build/bin/Release/config/"
+fi
 
 # Create a simple run script
 cat > "$RELEASE_PATH/run.sh" << EOF
