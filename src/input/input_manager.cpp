@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <chrono>
 #include <unordered_map>
+#include "../core/logging.hpp"
+#include "../config/config.hpp"
 
 namespace input {
 
@@ -14,7 +16,9 @@ InputManager& InputManager::instance() {
 }
 
 bool InputManager::initialize() {
-    // No hardcoded mappings - everything comes from config file
+    // Load mouse sensitivity from the main config system
+    mouseSensitivity_ = config::Config::instance().ui().mouse_sensitivity;
+    core::log(core::LogLevel::Info, "InputManager initialized with mouse sensitivity: " + std::to_string(mouseSensitivity_));
     return true;
 }
 
@@ -63,13 +67,8 @@ bool InputManager::loadConfig(const std::string& configPath) {
                 // Also update current context mapping
                 contextMappings_[currentContext_][action] = keyCode;
             }
-        } else if (key == "mouse_sensitivity") {
-            try {
-                mouseSensitivity_ = std::stof(value);
-            } catch (const std::exception&) {
-                // Keep default value
-            }
-        }
+        } 
+        // Note: mouse_sensitivity is now loaded from main config system, not input.ini
     }
     return true;
 }
@@ -91,8 +90,7 @@ bool InputManager::saveConfig(const std::string& configPath) {
         }
     }
     
-    file << "\n[settings]\n";
-    file << "mouse_sensitivity=" << mouseSensitivity_ << "\n";
+    // Note: mouse_sensitivity is now managed by main config system, not saved here
     return true;
 }
 
@@ -124,6 +122,11 @@ void InputManager::getMouseDelta(float& deltaX, float& deltaY) {
     // Reset mouse delta after consuming it
     mouseDeltaX_ = 0.0f;
     mouseDeltaY_ = 0.0f;
+}
+
+void InputManager::setMouseSensitivity(float sensitivity) {
+    mouseSensitivity_ = sensitivity;
+    core::log(core::LogLevel::Info, "Mouse sensitivity updated to: " + std::to_string(sensitivity));
 }
 
 void InputManager::setKeyState(int key, bool pressed) {

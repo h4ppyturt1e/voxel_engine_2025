@@ -17,9 +17,22 @@ public:
     virtual void update(float deltaTime) {}
     
     // State management
-    void show() { visible_ = true; }
-    void hide() { visible_ = false; }
-    void toggle() { visible_ = !visible_; }
+    void show() { 
+        if (!visible_) {
+            visible_ = true; 
+            triggerShowEvent();
+        }
+    }
+    void hide() { 
+        if (visible_) {
+            visible_ = false; 
+            triggerHideEvent();
+        }
+    }
+    void toggle() { 
+        if (visible_) hide(); 
+        else show(); 
+    }
     bool isVisible() const { return visible_; }
     
     // Properties

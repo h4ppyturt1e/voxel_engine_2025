@@ -33,6 +33,7 @@ public:
 	};
 	
 	const Graphics& graphics() const { return graphics_; }
+	Graphics& graphics() { return graphics_; }
 
 	struct UI {
 		float mouse_sensitivity {0.01f};
@@ -41,6 +42,7 @@ public:
 	};
 
 	const UI& ui() const { return ui_; }
+	UI& ui() { return ui_; }
 
 	struct Audio {
 		float master_volume {1.0f};
@@ -50,6 +52,7 @@ public:
 	};
 
 	const Audio& audio() const { return audio_; }
+	Audio& audio() { return audio_; }
 
 private:
 	ChunkDimensions chunk_{};

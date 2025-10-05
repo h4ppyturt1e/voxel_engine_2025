@@ -60,6 +60,9 @@ public:
     void loadSettings();
     void saveSettings();
     void applySettings();
+
+    // Graphics runtime controls
+    void setVSync(bool enabled);
     
     // Event system
     using OverlayEventCallback = std::function<void(OverlayType, bool)>;
@@ -84,6 +87,10 @@ private:
     OverlayEventCallback overlay_callback_;
     
     bool initialized_ = false;
+
+#ifdef VOXEL_WITH_GL
+    GLFWwindow* glfw_window_ = nullptr;
+#endif
 };
 
 } // namespace ui

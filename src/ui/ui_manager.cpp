@@ -52,6 +52,9 @@ bool UIManager::initialize(void* glfwWindow) {
     
     // Initialize ImGui if GLFW window is provided
     if (glfwWindow) {
+#ifdef VOXEL_WITH_GL
+        glfw_window_ = static_cast<GLFWwindow*>(glfwWindow);
+#endif
         initializeImGui(static_cast<GLFWwindow*>(glfwWindow));
     }
     
@@ -218,6 +221,20 @@ void UIManager::applySettings() {
 void UIManager::setOverlayEventCallback(OverlayEventCallback callback) {
     overlay_callback_ = callback;
 }
+
+#ifdef VOXEL_WITH_GL
+void UIManager::setVSync(bool enabled) {
+    if (!glfw_window_) {
+        core::log(core::LogLevel::Warn, "VSync change requested but GLFW window is not set");
+        return;
+    }
+    glfwSwapInterval(enabled ? 1 : 0);
+    config::Config::instance().graphics().vsync = enabled;
+    core::log(core::LogLevel::Info, enabled ? "VSync enabled" : "VSync disabled");
+}
+#else
+void UIManager::setVSync(bool) {}
+#endif
 
 #ifdef VOXEL_WITH_GL
 void UIManager::initializeImGui(GLFWwindow* window) {

@@ -30,6 +30,7 @@ public:
     
     bool isActionPressed(Action action) const;
     void getMouseDelta(float& deltaX, float& deltaY);
+    void setMouseSensitivity(float sensitivity);
     
     void setKeyState(int key, bool pressed);
     void setMouseDelta(float deltaX, float deltaY);

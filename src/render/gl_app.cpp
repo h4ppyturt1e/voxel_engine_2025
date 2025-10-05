@@ -298,6 +298,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         if (curF5 && !prevF5) {
             currentVsync = !currentVsync;
             glfwSwapInterval(currentVsync ? 1 : 0);
+            config::Config::instance().graphics().vsync = currentVsync;
             core::log(core::LogLevel::Info, currentVsync ? "VSync enabled" : "VSync disabled");
         }
         if (curESC && !prevESC) {
