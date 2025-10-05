@@ -323,10 +323,10 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
                     int cx = 0, cz = 0;
                     core::log(core::LogLevel::Info, "Break block at (" + std::to_string(hit.x) + "," + std::to_string(hit.y) + "," + std::to_string(hit.z) + ") in chunk (" + std::to_string(cx) + "," + std::to_string(cz) + ")");
                 }
-            } else if (pressR) {
-                int px,py,pz;
-                if (hit.hit) { px = hit.x + hit.nx; py = hit.y + hit.ny; pz = hit.z + hit.nz; }
-                else { float t = 4.0f; px = (int)std::floor(camX + fwdX*t); py = (int)std::floor(camY + fwdY*t); pz = (int)std::floor(camZ + fwdZ*t); }
+            } else if (pressR && hit.hit) {
+                int px = hit.x + hit.nx;
+                int py = hit.y + hit.ny;
+                int pz = hit.z + hit.nz;
                 if (px>=0&&py>=0&&pz>=0&&px<chunk.sizeX()&&py<chunk.sizeY()&&pz<chunk.sizeZ()) {
                     chunk.at(px,py,pz).type = voxel::BlockType::Dirt;
                     mesh = mesher.buildMesh(chunk);
