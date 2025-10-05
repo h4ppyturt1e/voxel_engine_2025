@@ -16,6 +16,9 @@ private:
     void renderCrosshair();
     void renderFPS();
     void renderDebugInfo();
+
+private:
+    void renderBuildTime();
     
     float fps_ = 0.0f;
     int frame_count_ = 0;

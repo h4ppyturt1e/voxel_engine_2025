@@ -44,11 +44,7 @@ void SettingsMenu::render() {
                 ImGui::EndTabItem();
             }
             
-            // Audio Tab
-            if (ImGui::BeginTabItem("Audio")) {
-                renderAudioSettings();
-                ImGui::EndTabItem();
-            }
+            // Audio removed
             
             // UI Tab
             if (ImGui::BeginTabItem("UI")) {
@@ -138,47 +134,7 @@ void SettingsMenu::renderGraphicsSettings() {
 #endif
 }
 
-void SettingsMenu::renderAudioSettings() {
-#ifdef VOXEL_WITH_GL
-    ImGui::Text("Audio Settings");
-    ImGui::Separator();
-    
-    // Master Volume
-    ImGui::Text("Master Volume: %.0f%%", temp_settings_.master_volume * 100.0f);
-    if (ImGui::SliderFloat("##MasterVolume", &temp_settings_.master_volume, 0.0f, 1.0f)) {
-        settings_changed_ = true;
-    }
-    
-    ImGui::Spacing();
-    
-    // SFX Volume
-    ImGui::Text("SFX Volume: %.0f%%", temp_settings_.sfx_volume * 100.0f);
-    if (ImGui::SliderFloat("##SFXVolume", &temp_settings_.sfx_volume, 0.0f, 1.0f)) {
-        settings_changed_ = true;
-    }
-    
-    ImGui::Spacing();
-    
-    // Music Volume
-    ImGui::Text("Music Volume: %.0f%%", temp_settings_.music_volume * 100.0f);
-    if (ImGui::SliderFloat("##MusicVolume", &temp_settings_.music_volume, 0.0f, 1.0f)) {
-        settings_changed_ = true;
-    }
-    
-    ImGui::Spacing();
-    
-    // Audio Device
-    ImGui::Text("Audio Device:");
-    char device_buffer[256];
-    strncpy(device_buffer, temp_settings_.device.c_str(), sizeof(device_buffer) - 1);
-    device_buffer[sizeof(device_buffer) - 1] = '\0';
-    
-    if (ImGui::InputText("##AudioDevice", device_buffer, sizeof(device_buffer))) {
-        temp_settings_.device = device_buffer;
-        settings_changed_ = true;
-    }
-#endif
-}
+// Audio UI removed
 
 void SettingsMenu::renderUISettings() {
 #ifdef VOXEL_WITH_GL
@@ -275,12 +231,7 @@ void SettingsMenu::saveSettings() {
         file << "# ui.theme=" << settings_.theme << "\n";
         file << "# ui.scale=" << settings_.scale << "\n\n";
         
-        // Write audio section
-        file << "[audio]\n";
-        file << "# audio.master_volume=" << settings_.master_volume << "\n";
-        file << "# audio.sfx_volume=" << settings_.sfx_volume << "\n";
-        file << "# audio.music_volume=" << settings_.music_volume << "\n";
-        file << "# audio.device=" << settings_.device << "\n";
+        // Audio section removed
         
         file.close();
         core::log(core::LogLevel::Info, "Settings saved to: " + configPath);
@@ -295,7 +246,6 @@ void SettingsMenu::saveSettings() {
 
 void SettingsMenu::loadSettings() {
     const auto& graphicsConfig = config::Config::instance().graphics();
-    const auto& audioConfig = config::Config::instance().audio();
     const auto& uiConfig = config::Config::instance().ui();
     
     // Load applied settings
@@ -303,10 +253,6 @@ void SettingsMenu::loadSettings() {
     settings_.resolution_width = graphicsConfig.resolution_width;
     settings_.resolution_height = graphicsConfig.resolution_height;
     settings_.quality = graphicsConfig.quality;
-    settings_.master_volume = audioConfig.master_volume;
-    settings_.sfx_volume = audioConfig.sfx_volume;
-    settings_.music_volume = audioConfig.music_volume;
-    settings_.device = audioConfig.device;
     settings_.mouse_sensitivity = uiConfig.mouse_sensitivity;
     settings_.theme = uiConfig.theme;
     settings_.scale = uiConfig.scale;
@@ -316,10 +262,6 @@ void SettingsMenu::loadSettings() {
     temp_settings_.resolution_width = settings_.resolution_width;
     temp_settings_.resolution_height = settings_.resolution_height;
     temp_settings_.quality = settings_.quality;
-    temp_settings_.master_volume = settings_.master_volume;
-    temp_settings_.sfx_volume = settings_.sfx_volume;
-    temp_settings_.music_volume = settings_.music_volume;
-    temp_settings_.device = settings_.device;
     temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
     temp_settings_.theme = settings_.theme;
     temp_settings_.scale = settings_.scale;
@@ -333,10 +275,7 @@ void SettingsMenu::resetTempSettings() {
     temp_settings_.resolution_width = settings_.resolution_width;
     temp_settings_.resolution_height = settings_.resolution_height;
     temp_settings_.quality = settings_.quality;
-    temp_settings_.master_volume = settings_.master_volume;
-    temp_settings_.sfx_volume = settings_.sfx_volume;
-    temp_settings_.music_volume = settings_.music_volume;
-    temp_settings_.device = settings_.device;
+    temp_settings_.quality = settings_.quality;
     temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
     temp_settings_.theme = settings_.theme;
     temp_settings_.scale = settings_.scale;
@@ -351,10 +290,6 @@ void SettingsMenu::applySettings() {
     settings_.resolution_width = temp_settings_.resolution_width;
     settings_.resolution_height = temp_settings_.resolution_height;
     settings_.quality = temp_settings_.quality;
-    settings_.master_volume = temp_settings_.master_volume;
-    settings_.sfx_volume = temp_settings_.sfx_volume;
-    settings_.music_volume = temp_settings_.music_volume;
-    settings_.device = temp_settings_.device;
     settings_.mouse_sensitivity = temp_settings_.mouse_sensitivity;
     settings_.theme = temp_settings_.theme;
     settings_.scale = temp_settings_.scale;

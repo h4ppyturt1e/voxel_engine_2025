@@ -29,6 +29,20 @@ int main() {
     
     // Configure logging from config
     bool cfgOk = config::Config::instance().loadFromFile(configManager.getConfigPath("engine.ini"));
+    // Stamp build time into config at runtime (visible in HUD)
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+        std::tm tm{};
+#if defined(_WIN32)
+        localtime_s(&tm, &t);
+#else
+        localtime_r(&t, &tm);
+#endif
+        std::ostringstream build;
+        build << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+        config::Config::instance().setBuildTime(build.str());
+    }
     const auto& logcfg = config::Config::instance().logging();
     if (logcfg.level == "debug") core::setLogLevel(core::LogLevel::Debug);
     else if (logcfg.level == "info") core::setLogLevel(core::LogLevel::Info);
