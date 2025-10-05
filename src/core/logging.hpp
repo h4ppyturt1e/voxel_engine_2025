@@ -52,12 +52,6 @@ private:
 inline void setLogLevel(LogLevel level) { Logger::instance().setLevel(level); }
 inline void log(LogLevel level, const std::string& message) { Logger::instance().log(level, message); }
 
-// Macros to include source file and line
-#define VOX_LOG_DEBUG(msg) ::core::Logger::instance().log(::core::LogLevel::Debug, std::string("[") + __FILE__ + ":" + std::to_string(__LINE__) + "] " + (msg))
-#define VOX_LOG_INFO(msg)  ::core::Logger::instance().log(::core::LogLevel::Info,  (msg))
-#define VOX_LOG_WARN(msg)  ::core::Logger::instance().log(::core::LogLevel::Warn,  (msg))
-#define VOX_LOG_ERROR(msg) ::core::Logger::instance().log(::core::LogLevel::Error, (msg))
-
 } // namespace core
 
 

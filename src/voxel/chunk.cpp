@@ -28,7 +28,6 @@ bool Chunk::saveToFile(const char* path) const {
 	for (const Voxel& v : voxels_) {
 		std::uint8_t type = static_cast<std::uint8_t>(v.type);
 		out.write(reinterpret_cast<const char*>(&type), sizeof(type));
-		out.write(reinterpret_cast<const char*>(&v.light), sizeof(v.light));
 	}
 	return true;
 }
@@ -49,7 +48,6 @@ bool Chunk::loadFromFile(const char* path) {
 	for (Voxel& v : voxels_) {
 		std::uint8_t type = 0;
 		in.read(reinterpret_cast<char*>(&type), sizeof(type));
-		in.read(reinterpret_cast<char*>(&v.light), sizeof(v.light));
 		v.type = static_cast<BlockType>(type);
 	}
 	return true;

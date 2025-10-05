@@ -97,11 +97,6 @@ bool InputManager::saveConfig(const std::string& configPath) {
 }
 
 void InputManager::update() {
-    // Check for config file changes and reload if needed
-    if (isConfigFileModified()) {
-        reloadConfig();
-    }
-    
     prevKeyStates_ = keyStates_;
 }
 
@@ -123,87 +118,12 @@ bool InputManager::isActionPressed(Action action) const {
     return keyIt != keyStates_.end() && keyIt->second;
 }
 
-bool InputManager::isActionJustPressed(Action action) const {
-    int key = getKeyMappingForContext(currentContext_, action);
-    if (key == -1) {
-        auto it = actionToKey_.find(action);
-        if (it == actionToKey_.end()) return false;
-        key = it->second;
-    }
-    bool current = keyStates_.find(key) != keyStates_.end() && keyStates_.at(key);
-    bool previous = prevKeyStates_.find(key) != prevKeyStates_.end() && prevKeyStates_.at(key);
-    return current && !previous;
-}
-
-bool InputManager::isActionJustReleased(Action action) const {
-    int key = getKeyMappingForContext(currentContext_, action);
-    if (key == -1) {
-        auto it = actionToKey_.find(action);
-        if (it == actionToKey_.end()) return false;
-        key = it->second;
-    }
-    bool current = keyStates_.find(key) != keyStates_.end() && keyStates_.at(key);
-    bool previous = prevKeyStates_.find(key) != prevKeyStates_.end() && prevKeyStates_.at(key);
-    return !current && previous;
-}
-
 void InputManager::getMouseDelta(float& deltaX, float& deltaY) {
     deltaX = mouseDeltaX_;
     deltaY = mouseDeltaY_;
     // Reset mouse delta after consuming it
     mouseDeltaX_ = 0.0f;
     mouseDeltaY_ = 0.0f;
-}
-
-void InputManager::setMouseSensitivity(float sensitivity) {
-    mouseSensitivity_ = sensitivity;
-}
-
-float InputManager::getMouseSensitivity() const {
-    return mouseSensitivity_;
-}
-
-void InputManager::setKeyMapping(Action action, int key) {
-    actionToKey_[action] = key;
-}
-
-int InputManager::getKeyMapping(Action action) const {
-    auto it = actionToKey_.find(action);
-    return it != actionToKey_.end() ? it->second : -1;
-}
-
-std::string InputManager::getActionName(Action action) const {
-    return actionToString(action);
-}
-
-void InputManager::resetToDefaults() {
-    // Reset to defaults by reloading the config file
-    if (!configPath_.empty()) {
-        loadConfig(configPath_);
-    }
-}
-
-void InputManager::setContext(InputContext context) {
-    currentContext_ = context;
-}
-
-InputContext InputManager::getCurrentContext() const {
-    return currentContext_;
-}
-
-void InputManager::setKeyMappingForContext(InputContext context, Action action, int key) {
-    contextMappings_[context][action] = key;
-}
-
-int InputManager::getKeyMappingForContext(InputContext context, Action action) const {
-    auto contextIt = contextMappings_.find(context);
-    if (contextIt != contextMappings_.end()) {
-        auto actionIt = contextIt->second.find(action);
-        if (actionIt != contextIt->second.end()) {
-            return actionIt->second;
-        }
-    }
-    return -1;
 }
 
 void InputManager::setKeyState(int key, bool pressed) {
@@ -230,10 +150,6 @@ std::string InputManager::actionToString(Action action) const {
         case Action::MoveUp: return "MoveUp";
         case Action::MoveDown: return "MoveDown";
         case Action::FastMovement: return "FastMovement";
-        case Action::LookUp: return "LookUp";
-        case Action::LookDown: return "LookDown";
-        case Action::LookLeft: return "LookLeft";
-        case Action::LookRight: return "LookRight";
         case Action::ToggleMenu: return "ToggleMenu";
         case Action::ToggleDebug: return "ToggleDebug";
         case Action::ToggleWireframe: return "ToggleWireframe";
@@ -254,10 +170,6 @@ Action InputManager::stringToAction(const std::string& str) const {
     if (str == "MoveUp") return Action::MoveUp;
     if (str == "MoveDown") return Action::MoveDown;
     if (str == "FastMovement") return Action::FastMovement;
-    if (str == "LookUp") return Action::LookUp;
-    if (str == "LookDown") return Action::LookDown;
-    if (str == "LookLeft") return Action::LookLeft;
-    if (str == "LookRight") return Action::LookRight;
     if (str == "ToggleMenu") return Action::ToggleMenu;
     if (str == "ToggleDebug") return Action::ToggleDebug;
     if (str == "ToggleWireframe") return Action::ToggleWireframe;
@@ -269,33 +181,5 @@ Action InputManager::stringToAction(const std::string& str) const {
     return Action::Count;
 }
 
-
-void InputManager::reloadConfig() {
-    if (!configPath_.empty()) {
-        loadConfig(configPath_);
-        
-        // Update timestamp after successful reload
-        try {
-            auto fileTime = std::filesystem::last_write_time(configPath_);
-            lastConfigModTime_ = std::chrono::duration_cast<std::chrono::seconds>(
-                fileTime.time_since_epoch()).count();
-        } catch (const std::exception&) {
-            lastConfigModTime_ = 0;
-        }
-    }
-}
-
-bool InputManager::isConfigFileModified() const {
-    if (configPath_.empty()) return false;
-    
-    try {
-        auto fileTime = std::filesystem::last_write_time(configPath_);
-        auto currentModTime = std::chrono::duration_cast<std::chrono::seconds>(
-            fileTime.time_since_epoch()).count();
-        return currentModTime > lastConfigModTime_;
-    } catch (const std::exception&) {
-        return false;
-    }
-}
 
 } // namespace input
