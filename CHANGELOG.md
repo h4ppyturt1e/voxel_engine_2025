@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **UI System with Dear ImGui Integration**
+  - UIManager for centralized overlay management
+  - Overlay base class with HUD, Settings, and KeyBindings menus
+  - Modal overlay behavior with proper input blocking
+  - Real-time FPS counter and transparent crosshair in HUD
+  - Settings menu with Graphics, Audio, UI, and Controls tabs (Apply button non-functional)
+  - Key bindings menu with placeholder remapping functionality
+- **Advanced Game State Management**
+  - True game pause system that freezes world updates
+  - Automatic pause/resume when opening/closing modal menus
+  - Visual pause indicators in window title and HUD
+  - Game state logging for debugging
+- **Enhanced Configuration System**
+  - Extended config system for Graphics, UI, and Audio settings
+  - Mouse sensitivity, VSync, resolution, and quality settings
+  - Audio volume controls (master, SFX, music) and device selection
+  - UI theme selection (dark/light) and scaling options
+- **Improved User Experience**
+  - Centered modal menus for professional appearance
+  - Consistent ESC and Close button behavior for menu management
+  - Fixed FPS counter showing real-time values instead of fixed rate
+  - Clean crosshair rendering without background artifacts
 - Action-based input system with configurable key bindings
 - Hot reload support for input configuration changes
 - Context-sensitive input (Game/Menu states)
@@ -17,6 +39,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raycast system for block selection and editing
 
 ### Changed
+- **UI System Integration**
+  - Integrated Dear ImGui library with GLFW and OpenGL backends
+  - Replaced hardcoded crosshair with ImGui-based transparent crosshair
+  - Centralized UI rendering through UIManager instead of direct ImGui calls
+  - Updated render loop to support UI overlay management
+- **Game State Architecture**
+  - Implemented proper game state management (Running/Paused/Menu)
+  - Modified input handling to respect game pause state
+  - Updated FPS calculation to pause when game is paused
+  - Enhanced window title to show pause state
+- **Configuration System**
+  - Extended config system to support UI, Graphics, and Audio settings
+  - Added new configuration sections for comprehensive game settings
+  - Updated default configuration files with new setting categories
 - Refactored input system to use InputManager instead of direct GLFW calls
 - Moved mesh generation logic to dedicated GreedyMesher class
 - Extracted raycast functionality to separate module
@@ -29,6 +65,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardcoded key mappings in favor of configurable system
 
 ### Fixed
+- **UI System Issues**
+  - Fixed FPS counter showing fixed value (62.5) instead of real-time FPS
+  - Fixed black rectangle crosshair by implementing transparent ImGui crosshair
+  - Fixed ESC key not properly opening/closing settings menu
+  - Fixed segmentation fault on application shutdown by centralizing ImGui lifecycle
+  - Fixed Close button in menus not unpausing the game
+  - Fixed duplicate crosshair rendering (removed hardcoded OpenGL crosshair)
+- **Game State Issues**
+  - Fixed game not truly pausing when menus are open (now properly freezes world updates)
+  - Fixed inconsistent pause behavior between ESC and Close button
+  - Fixed mouse tracking continuing when game is paused
+  - Fixed FPS calculation continuing when game is paused
+- **Technical Issues**
+  - Fixed ImGui initialization/shutdown being called multiple times
+  - Fixed overlay management not properly handling modal behavior
+  - Fixed menu centering issues (now properly centered on screen)
 - FPS-independent movement using delta time
 - Chunk file saving to correct executable directory
 - Config file path resolution issues
@@ -70,6 +122,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **R**: Recenter camera to world origin
 - **F3**: Toggle debug information overlay
 - **F4**: Toggle mouse lock (cursor capture)
+- **ESC**: Open/close settings menu (pauses game)
+- **UI Controls**: Settings menu with Graphics, Audio, UI, and Controls tabs
 
 ### Configuration
 ```ini
@@ -81,7 +135,21 @@ log.level=debug
 log.file=logs/engine.log
 
 [graphics]
-vsync=true
+vsync=false
+graphics.resolution_width=800
+graphics.resolution_height=600
+graphics.quality=medium
+
+[ui]
+ui.mouse_sensitivity=0.01
+ui.theme=dark
+ui.scale=1.0
+
+[audio]
+audio.master_volume=1.0
+audio.sfx_volume=1.0
+audio.music_volume=1.0
+audio.device=default
 ```
 
 ### Files
