@@ -1,5 +1,6 @@
 #include "input_manager.hpp"
 #include "key_constants.hpp"
+#include "../config/ini_parser.hpp"
 #include <fstream>
 #include <filesystem>
 #include <cstdint>
@@ -37,38 +38,19 @@ bool InputManager::loadConfig(const std::string& configPath) {
         }
     }
     
-    std::ifstream file(configPath);
-    if (!file.is_open()) {
-        return false;
-    }
-    
-    std::string line;
-    while (std::getline(file, line)) {
-        if (line.empty() || line[0] == '#' || line[0] == ';') continue;
-        
-        size_t eqPos = line.find('=');
-        if (eqPos == std::string::npos) continue;
-        
-        std::string key = line.substr(0, eqPos);
-        std::string value = line.substr(eqPos + 1);
-        
-        // Trim whitespace
-        key.erase(0, key.find_first_not_of(" \t"));
-        key.erase(key.find_last_not_of(" \t") + 1);
-        value.erase(0, value.find_first_not_of(" \t"));
-        value.erase(value.find_last_not_of(" \t") + 1);
-        
-        // Parse action and key mapping
-        Action action = stringToAction(key);
+    config::IniParser parser;
+    if (!parser.parseFile(configPath)) return false;
+    // Read [actions] section
+    auto actions = parser.section("actions");
+    for (const auto& [actionName, keyName] : actions) {
+        Action action = stringToAction(actionName);
         if (action != Action::Count) {
-            int keyCode = keyNameToCode(value);
+            int keyCode = keyNameToCode(keyName);
             if (keyCode != -1) {
                 actionToKey_[action] = keyCode;
-                // Also update current context mapping
                 contextMappings_[currentContext_][action] = keyCode;
             }
-        } 
-        // Note: mouse_sensitivity is now loaded from main config system, not input.ini
+        }
     }
     return true;
 }

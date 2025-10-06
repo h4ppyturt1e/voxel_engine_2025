@@ -93,7 +93,11 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		return -1;
 	}
 	
-	GLFWwindow* window = glfwCreateWindow(800, 600, "Voxel Demo", nullptr, nullptr);
+    // Start at a fixed resolution: 1280x720 (windowed)
+    int initW = 1280;
+    int initH = 720;
+    GLFWmonitor* monitor = nullptr;
+    GLFWwindow* window = glfwCreateWindow(initW, initH, "Voxel Demo", monitor, nullptr);
 	if (!window) {
 		const char* disp = std::getenv("DISPLAY");
 		std::string d = disp ? disp : "(null)";
@@ -101,7 +105,11 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
 		glfwTerminate();
 		return -1;
 	}
-	glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(window);
+    {
+        int winW = 0, winH = 0; glfwGetWindowSize(window, &winW, &winH);
+        core::log(core::LogLevel::Info, "Startup window size: " + std::to_string(winW) + "x" + std::to_string(winH) + " (windowed)");
+    }
     
     // Initialize ConfigManager
     config::ConfigManager& configManager = config::ConfigManager::instance();
@@ -115,6 +123,12 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         std::string configPath = std::filesystem::absolute(configManager.getConfigPath("input.ini")).string();
         std::cerr << "Failed to ensure input config exists at: " << configPath << std::endl;
         return -1;
+    }
+    // Ensure theme config exists
+    if (!configManager.ensureConfigExists("theme.ini")) {
+        std::string configPath = std::filesystem::absolute(configManager.getConfigPath("theme.ini")).string();
+        std::cerr << "Failed to ensure theme config exists at: " << configPath << std::endl;
+        // Not fatal; continue
     }
     
     // Initialize InputManager
@@ -143,6 +157,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
         core::log(core::LogLevel::Error, "Failed to initialize UIManager");
         return -1;
     }
+    // Apply UI settings at startup (scale/theme)
+    uiManager.applySettings();
     // Start with cursor locked (hidden)
     uiManager.setCursorLocked(true);
 
@@ -164,6 +180,8 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
     }
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
+    // Make window non-resizable
+    glfwSetWindowAttrib(window, GLFW_RESIZABLE, GLFW_FALSE);
 
     // Build initial mesh from chunk (0,0)
     voxel::Chunk& chunk = world.getOrCreateChunk(0,0);
@@ -323,10 +341,10 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
                     int cx = 0, cz = 0;
                     core::log(core::LogLevel::Info, "Break block at (" + std::to_string(hit.x) + "," + std::to_string(hit.y) + "," + std::to_string(hit.z) + ") in chunk (" + std::to_string(cx) + "," + std::to_string(cz) + ")");
                 }
-            } else if (pressR) {
-                int px,py,pz;
-                if (hit.hit) { px = hit.x + hit.nx; py = hit.y + hit.ny; pz = hit.z + hit.nz; }
-                else { float t = 4.0f; px = (int)std::floor(camX + fwdX*t); py = (int)std::floor(camY + fwdY*t); pz = (int)std::floor(camZ + fwdZ*t); }
+            } else if (pressR && hit.hit) {
+                int px = hit.x + hit.nx;
+                int py = hit.y + hit.ny;
+                int pz = hit.z + hit.nz;
                 if (px>=0&&py>=0&&pz>=0&&px<chunk.sizeX()&&py<chunk.sizeY()&&pz<chunk.sizeZ()) {
                     chunk.at(px,py,pz).type = voxel::BlockType::Dirt;
                     mesh = mesher.buildMesh(chunk);
@@ -364,16 +382,7 @@ int run_demo(voxel::World& world, mesh::GreedyMesher& mesher) {
             if (showDebug) {
                 std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f | cam(%.2f,%.2f,%.2f) look(%.2f,%.2f,%.2f)%s",
                              fps, camX, camY, camZ, fwdX, fwdY, fwdZ, isPaused ? " | PAUSED" : "");
-                if (hit.hit) {
-                    char buf2[96];
-                    std::snprintf(buf2, sizeof(buf2), " | hit(%d,%d,%d)", hit.x, hit.y, hit.z);
-                    size_t len = std::strlen(title);
-                    size_t avail = sizeof(title) - 1 - len;
-                    if (avail > 0) {
-                        std::strncpy(title + len, buf2, avail);
-                        title[len + avail <= sizeof(title)-1 ? len + avail : sizeof(title)-1] = '\0';
-                    }
-                }
+                // Removed hit debug text from title
             } else {
                 std::snprintf(title, sizeof(title), "Voxel Demo | FPS: %.1f%s", fps, isPaused ? " | PAUSED" : "");
             }

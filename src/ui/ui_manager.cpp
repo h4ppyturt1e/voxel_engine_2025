@@ -3,6 +3,7 @@
 #include "settings_menu.hpp"
 #include "key_bindings_menu.hpp"
 #include "hud.hpp"
+#include "theme.hpp"
 
 #include "../config/config.hpp"
 #include "../config/config_manager.hpp"
@@ -55,6 +56,8 @@ bool UIManager::initialize(void* glfwWindow) {
 #ifdef VOXEL_WITH_GL
         glfw_window_ = static_cast<GLFWwindow*>(glfwWindow);
 #endif
+        // Ensure theme.ini exists in runtime config directory
+        config::ConfigManager::instance().ensureConfigExists("theme.ini");
         initializeImGui(static_cast<GLFWwindow*>(glfwWindow));
     }
     
@@ -87,6 +90,24 @@ void UIManager::beginFrame(float deltaTime) {
     if (!initialized_) return;
     
 #ifdef VOXEL_WITH_GL
+    if (theme_dirty_) {
+        // Re-apply theme and fonts safely at frame start
+        ui::Theme theme;
+        std::string themePath = config::ConfigManager::instance().getConfigPath("theme.ini");
+        std::string themeName = config::Config::instance().ui().theme;
+        if (theme.loadFromFile(themePath, themeName)) {
+            theme.apply();
+        }
+        ImGui_ImplOpenGL3_DestroyFontsTexture();
+        ImGui_ImplOpenGL3_CreateFontsTexture();
+        theme_dirty_ = false;
+    }
+    // If fonts changed on Apply, rebuild texture here safely
+    if (font_atlas_dirty_) {
+        ImGui_ImplOpenGL3_DestroyFontsTexture();
+        ImGui_ImplOpenGL3_CreateFontsTexture();
+        font_atlas_dirty_ = false;
+    }
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -213,6 +234,12 @@ void UIManager::loadSettings() {
 #ifdef VOXEL_WITH_GL
     if (ImGui::GetCurrentContext()) {
         ImGui::GetIO().FontGlobalScale = uiConfig.scale;
+        // Apply theme dynamically
+        if (uiConfig.theme == "dark") {
+            ImGui::StyleColorsDark();
+        } else {
+            ImGui::StyleColorsLight();
+        }
     }
 #endif
 }
@@ -224,6 +251,10 @@ void UIManager::saveSettings() {
 
 void UIManager::applySettings() {
     loadSettings();
+#ifdef VOXEL_WITH_GL
+    // Defer theme (and font) re-application to next frame to avoid GL issues
+    theme_dirty_ = true;
+#endif
 }
 
 void UIManager::setOverlayEventCallback(OverlayEventCallback callback) {
@@ -241,6 +272,33 @@ void UIManager::setVSync(bool enabled) {
     core::log(core::LogLevel::Info, enabled ? "VSync enabled" : "VSync disabled");
 }
 
+void UIManager::setWindowSize(int width, int height) {
+    if (!glfw_window_) {
+        core::log(core::LogLevel::Warn, "Window resize requested but GLFW window is not set");
+        return;
+    }
+    if (width < 100) width = 100;
+    if (height < 100) height = 100;
+    glfwSetWindowSize(glfw_window_, width, height);
+}
+
+void UIManager::setFullscreen(bool enabled) {
+    if (!glfw_window_) return;
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+    if (enabled && monitor && mode) {
+        glfwSetWindowMonitor(glfw_window_, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    } else {
+        // windowed: center on screen with current config size
+        int w = config::Config::instance().graphics().resolution_width;
+        int h = config::Config::instance().graphics().resolution_height;
+        if (w < 100) w = 100; if (h < 100) h = 100;
+        int x = 100, y = 100;
+        if (monitor && mode) { x = (mode->width - w) / 2; y = (mode->height - h) / 2; }
+        glfwSetWindowMonitor(glfw_window_, nullptr, x, y, w, h, 0);
+    }
+}
+
 void UIManager::setCursorLocked(bool locked) {
     cursor_locked_ = locked;
     applyCursorMode();
@@ -252,6 +310,8 @@ void UIManager::applyCursorMode() {
 }
 #else
 void UIManager::setVSync(bool) {}
+void UIManager::setWindowSize(int, int) {}
+void UIManager::setFullscreen(bool) {}
 void UIManager::setCursorLocked(bool) {}
 void UIManager::applyCursorMode() {}
 #endif
@@ -264,16 +324,24 @@ void UIManager::initializeImGui(GLFWwindow* window) {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     
-    // Setup Dear ImGui style
-    if (config::Config::instance().ui().theme == "dark") {
-        ImGui::StyleColorsDark();
+    // Setup Dear ImGui style via Theme
+    ui::Theme theme;
+    // Try loading theme from config directory
+    std::string themePath = config::ConfigManager::instance().getConfigPath("theme.ini");
+    std::string themeName = config::Config::instance().ui().theme;
+    if (!theme.loadFromFile(themePath, themeName)) {
+        // Fallback to built-in dark/light via config value
+        if (config::Config::instance().ui().theme == "dark") ImGui::StyleColorsDark();
+        else ImGui::StyleColorsLight();
     } else {
-        ImGui::StyleColorsLight();
+        theme.apply();
     }
     
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130");
+    // Build font texture after initial font load
+    ImGui_ImplOpenGL3_CreateFontsTexture();
 }
 
 void UIManager::shutdownImGui() {

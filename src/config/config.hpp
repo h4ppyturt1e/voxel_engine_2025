@@ -27,9 +27,10 @@ public:
 
 	struct Graphics {
 		bool vsync {true};
-		int resolution_width {800};
-		int resolution_height {600};
+		int resolution_width {-1};
+		int resolution_height {-1};
 		std::string quality {"medium"};
+		bool fullscreen {false};
 	};
 	
 	const Graphics& graphics() const { return graphics_; }
@@ -39,6 +40,8 @@ public:
 		float mouse_sensitivity {0.01f};
 		std::string theme {"dark"};
 		float scale {1.0f};
+		bool crosshair_enabled {true};
+		float crosshair_percent {10.0f};
 	};
 
 	const UI& ui() const { return ui_; }

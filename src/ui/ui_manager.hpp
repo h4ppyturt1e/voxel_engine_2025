@@ -63,6 +63,14 @@ public:
 
     // Graphics runtime controls
     void setVSync(bool enabled);
+    void setWindowSize(int width, int height);
+    void setFullscreen(bool enabled);
+    void setFontOverride(const std::string& path, float size) {
+        override_font_path_ = path;
+        override_font_size_ = size;
+    }
+    const std::string& getFontOverridePath() const { return override_font_path_; }
+    float getFontOverrideSize() const { return override_font_size_; }
 
     // Cursor lock controls
     void setCursorLocked(bool locked);
@@ -73,6 +81,10 @@ public:
     // Event system
     using OverlayEventCallback = std::function<void(OverlayType, bool)>;
     void setOverlayEventCallback(OverlayEventCallback callback);
+    // Mark font atlas dirty to rebuild GL texture safely next frame
+    void markFontAtlasDirty() { font_atlas_dirty_ = true; }
+    // Request theme (including fonts) to be re-applied at the start of next frame
+    void markThemeDirty() { theme_dirty_ = true; }
     
 private:
     UIManager() = default;
@@ -100,6 +112,13 @@ private:
 #endif
 
     bool cursor_locked_ = false;
+
+    // Optional font override provided by UI (session-scoped)
+    std::string override_font_path_{};
+    float override_font_size_ {16.0f};
+
+    bool font_atlas_dirty_ = false;
+    bool theme_dirty_ = false;
 };
 
 } // namespace ui

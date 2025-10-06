@@ -11,24 +11,82 @@ ConfigManager& ConfigManager::instance() {
 }
 
 bool ConfigManager::initialize() {
-    // Set up paths - runtime config goes in same directory as executable
-    // Get the executable's directory
-    std::string exePath = std::filesystem::current_path().string();
-    
-    // If we're running from project root, the exe is in build/bin/Release/
-    if (exePath.find("build") == std::string::npos) {
-        exePath = "build/bin/Release";
+    // Determine a robust base directory for runtime configs
+    // Prefer current working directory; if no config folder there, fall back to build/bin/Release if present
+    std::filesystem::path cwd = std::filesystem::current_path();
+    std::filesystem::path baseDir = cwd;
+    if (!std::filesystem::exists(baseDir / "config")) {
+        if (std::filesystem::exists(cwd / "build" / "bin" / "Release")) {
+            baseDir = cwd / "build" / "bin" / "Release";
+        }
     }
-    
-    runtimeConfigDir_ = exePath + "/config";
-    defaultConfigDir_ = "default_config";
+    runtimeConfigDir_ = (baseDir / "config").string();
+
+    // Locate default_config directory by searching upwards from baseDir
+    std::filesystem::path candidate;
+    bool foundDefault = false;
+    for (int up = 0; up <= 4; ++up) {
+        std::filesystem::path probe = baseDir;
+        for (int i = 0; i < up; ++i) probe = probe.parent_path();
+        candidate = probe / "default_config";
+        if (std::filesystem::exists(candidate) && std::filesystem::is_directory(candidate)) {
+            foundDefault = true;
+            break;
+        }
+    }
+    defaultConfigDir_ = foundDefault ? candidate.string() : std::string("default_config");
     
     // Create runtime config directory if it doesn't exist
     try {
         std::filesystem::create_directories(runtimeConfigDir_);
+        std::filesystem::create_directories(std::filesystem::path(runtimeConfigDir_) / "fonts");
     } catch (const std::exception& e) {
         std::cerr << "Failed to create config directory: " << e.what() << std::endl;
         return false;
+    }
+    // Proactively copy any defaults that are missing (engine.ini, input.ini, theme.ini, etc.)
+    try {
+        if (std::filesystem::exists(defaultConfigDir_) && std::filesystem::is_directory(defaultConfigDir_)) {
+            for (const auto& entry : std::filesystem::directory_iterator(defaultConfigDir_)) {
+            if (!entry.is_regular_file()) continue;
+            const auto& srcPath = entry.path();
+            std::string fileName = srcPath.filename().string();
+            std::string dstPath = runtimeConfigDir_ + "/" + fileName;
+            if (!std::filesystem::exists(dstPath)) {
+                std::filesystem::copy_file(srcPath, dstPath);
+            }
+            }
+        }
+        // Copy default fonts from default_fonts -> config/fonts if missing
+        std::filesystem::path fontsDst = std::filesystem::path(runtimeConfigDir_) / "fonts";
+        std::filesystem::path defaultFontsDir;
+        bool foundFonts = false;
+        for (int up = 0; up <= 4; ++up) {
+            std::filesystem::path probe = baseDir;
+            for (int i = 0; i < up; ++i) probe = probe.parent_path();
+            auto cand = probe / "default_fonts";
+            if (std::filesystem::exists(cand) && std::filesystem::is_directory(cand)) {
+                defaultFontsDir = cand;
+                foundFonts = true;
+                break;
+            }
+        }
+        if (foundFonts) {
+            for (const auto& entry : std::filesystem::directory_iterator(defaultFontsDir)) {
+                if (!entry.is_regular_file()) continue;
+                auto ext = entry.path().extension().string();
+                for (auto& ch : ext) ch = (char)std::tolower((unsigned char)ch);
+                if (ext == ".ttf" || ext == ".otf") {
+                    std::filesystem::path dst = fontsDst / entry.path().filename();
+                    if (!std::filesystem::exists(dst)) {
+                        std::filesystem::copy_file(entry.path(), dst);
+                    }
+                }
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Warning: failed to sync default configs: " << e.what() << std::endl;
+        // Not fatal
     }
     
     return true;

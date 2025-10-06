@@ -31,6 +31,11 @@ private:
         float mouse_sensitivity;
         std::string theme;
         float scale;
+        bool crosshair_enabled;
+        float crosshair_percent;
+		bool fullscreen;
+        float font_size;
+        bool font_enabled;
     } settings_;
     
     // Temporary UI values (for sliders/inputs)
@@ -40,11 +45,21 @@ private:
         int resolution_height;
         std::string quality;
         float mouse_sensitivity;
+        float mouse_sensitivity_percent;
         std::string theme;
         float scale;
+        bool crosshair_enabled;
+        float crosshair_percent;
+		bool fullscreen;
+        float font_size;
+        bool font_enabled;
     } temp_settings_;
     
     bool settings_changed_ = false;
+
+    // Resolution selection state
+    int aspect_index_ = 0; // 0:16:9,1:16:10,2:4:3,3:21:9,4:32:9
+    int res_index_ = 0;
 };
 
 } // namespace ui
