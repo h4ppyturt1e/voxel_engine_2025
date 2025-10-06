@@ -34,6 +34,8 @@ private:
         bool crosshair_enabled;
         float crosshair_percent;
 		bool fullscreen;
+        float font_size;
+        bool font_enabled;
     } settings_;
     
     // Temporary UI values (for sliders/inputs)
@@ -49,6 +51,8 @@ private:
         bool crosshair_enabled;
         float crosshair_percent;
 		bool fullscreen;
+        float font_size;
+        bool font_enabled;
     } temp_settings_;
     
     bool settings_changed_ = false;

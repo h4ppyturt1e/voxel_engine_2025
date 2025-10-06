@@ -39,6 +39,7 @@ bool ConfigManager::initialize() {
     // Create runtime config directory if it doesn't exist
     try {
         std::filesystem::create_directories(runtimeConfigDir_);
+        std::filesystem::create_directories(std::filesystem::path(runtimeConfigDir_) / "fonts");
     } catch (const std::exception& e) {
         std::cerr << "Failed to create config directory: " << e.what() << std::endl;
         return false;
@@ -54,6 +55,33 @@ bool ConfigManager::initialize() {
             if (!std::filesystem::exists(dstPath)) {
                 std::filesystem::copy_file(srcPath, dstPath);
             }
+            }
+        }
+        // Copy default fonts from default_fonts -> config/fonts if missing
+        std::filesystem::path fontsDst = std::filesystem::path(runtimeConfigDir_) / "fonts";
+        std::filesystem::path defaultFontsDir;
+        bool foundFonts = false;
+        for (int up = 0; up <= 4; ++up) {
+            std::filesystem::path probe = baseDir;
+            for (int i = 0; i < up; ++i) probe = probe.parent_path();
+            auto cand = probe / "default_fonts";
+            if (std::filesystem::exists(cand) && std::filesystem::is_directory(cand)) {
+                defaultFontsDir = cand;
+                foundFonts = true;
+                break;
+            }
+        }
+        if (foundFonts) {
+            for (const auto& entry : std::filesystem::directory_iterator(defaultFontsDir)) {
+                if (!entry.is_regular_file()) continue;
+                auto ext = entry.path().extension().string();
+                for (auto& ch : ext) ch = (char)std::tolower((unsigned char)ch);
+                if (ext == ".ttf" || ext == ".otf") {
+                    std::filesystem::path dst = fontsDst / entry.path().filename();
+                    if (!std::filesystem::exists(dst)) {
+                        std::filesystem::copy_file(entry.path(), dst);
+                    }
+                }
             }
         }
     } catch (const std::exception& e) {

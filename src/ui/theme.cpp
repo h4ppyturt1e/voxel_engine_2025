@@ -1,12 +1,16 @@
 #include "theme.hpp"
 #include "../config/ini_parser.hpp"
+#include "../config/config_manager.hpp"
 
 #ifdef VOXEL_WITH_GL
 #include <imgui.h>
+#include <imgui_impl_opengl3.h>
 #endif
+#include "../core/logging.hpp"
 
 #include <sstream>
 #include <algorithm>
+#include <filesystem>
 
 namespace ui {
 
@@ -40,6 +44,11 @@ bool Theme::loadFromFile(const std::string& path, const std::string& themeName) 
     auto get = [&](const char* k, std::string& dst){ auto it=baseSec.find(k); if(it!=baseSec.end()){ dst=it->second; return true;} return false; };
     if (get("style", tmp)) baseStyle_ = tmp; else baseStyle_ = themeName.empty()?"dark":themeName;
     if (get("font_scale", tmp)) fontScale_ = std::stof(tmp);
+    if (get("font_size", tmp)) fontSize_ = std::stof(tmp);
+    if (get("font_enabled", tmp)) fontEnabled_ = (tmp == "true" || tmp == "1");
+    // Font selection removed; always use bundled default font
+    fontPath_.clear();
+    core::log(core::LogLevel::Info, std::string("Theme load: ") + path + ", theme=" + (themeName.empty()?"(default)":themeName));
     if (get("alpha", tmp)) alpha_ = std::stof(tmp);
     if (get("window_rounding", tmp)) windowRounding_ = std::stof(tmp);
     if (get("frame_rounding", tmp)) frameRounding_ = std::stof(tmp);
@@ -92,8 +101,41 @@ void Theme::apply() const {
         else if (n == "ButtonActive") idx = ImGuiCol_ButtonActive;
         if (idx >= 0) s.Colors[idx] = ImVec4(rgba[0], rgba[1], rgba[2], rgba[3]);
     }
-    // Font global scale is in IO
-    ImGui::GetIO().FontGlobalScale = fontScale_;
+    // Fonts: optional bundled default "minecraft" font from config/fonts, with configurable size from [ui].
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->Clear();
+    if (fontEnabled_) {
+        std::filesystem::path cfgDir = std::filesystem::path(config::ConfigManager::instance().getConfigPath("."));
+        std::filesystem::path fontsDir = cfgDir / "fonts";
+        std::string chosenPath;
+        try {
+            if (std::filesystem::exists(fontsDir)) {
+                for (const auto& entry : std::filesystem::directory_iterator(fontsDir)) {
+                    if (!entry.is_regular_file()) continue;
+                    std::string name = entry.path().filename().string();
+                    std::string ext = entry.path().extension().string();
+                    for (char& c : name) c = (char)std::tolower((unsigned char)c);
+                    for (char& c : ext) c = (char)std::tolower((unsigned char)c);
+                    if ((ext == ".ttf" || ext == ".otf") && name.find("minecraft") != std::string::npos) {
+                        chosenPath = entry.path().string();
+                        break;
+                    }
+                }
+            }
+        } catch (...) {}
+        if (!chosenPath.empty()) {
+            float size = fontSize_ > 0.0f ? fontSize_ : 18.0f;
+            io.Fonts->AddFontFromFileTTF(chosenPath.c_str(), size);
+            core::log(core::LogLevel::Info, std::string("Theme apply: using default font ") + chosenPath + " @ " + std::to_string((int)size));
+        } else {
+            io.Fonts->AddFontDefault();
+            core::log(core::LogLevel::Warn, "Theme apply: default 'minecraft' font not found; using ImGui default font");
+        }
+    } else {
+        io.Fonts->AddFontDefault();
+        core::log(core::LogLevel::Info, "Theme apply: custom font disabled; using ImGui default font");
+    }
+    io.FontGlobalScale = fontScale_;
 #endif
 }
 

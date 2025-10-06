@@ -90,6 +90,24 @@ void UIManager::beginFrame(float deltaTime) {
     if (!initialized_) return;
     
 #ifdef VOXEL_WITH_GL
+    if (theme_dirty_) {
+        // Re-apply theme and fonts safely at frame start
+        ui::Theme theme;
+        std::string themePath = config::ConfigManager::instance().getConfigPath("theme.ini");
+        std::string themeName = config::Config::instance().ui().theme;
+        if (theme.loadFromFile(themePath, themeName)) {
+            theme.apply();
+        }
+        ImGui_ImplOpenGL3_DestroyFontsTexture();
+        ImGui_ImplOpenGL3_CreateFontsTexture();
+        theme_dirty_ = false;
+    }
+    // If fonts changed on Apply, rebuild texture here safely
+    if (font_atlas_dirty_) {
+        ImGui_ImplOpenGL3_DestroyFontsTexture();
+        ImGui_ImplOpenGL3_CreateFontsTexture();
+        font_atlas_dirty_ = false;
+    }
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -234,13 +252,8 @@ void UIManager::saveSettings() {
 void UIManager::applySettings() {
     loadSettings();
 #ifdef VOXEL_WITH_GL
-    // Re-apply theme.ini if present after config changes
-    ui::Theme theme;
-    std::string themePath = config::ConfigManager::instance().getConfigPath("theme.ini");
-    std::string themeName = config::Config::instance().ui().theme;
-    if (theme.loadFromFile(themePath, themeName)) {
-        theme.apply();
-    }
+    // Defer theme (and font) re-application to next frame to avoid GL issues
+    theme_dirty_ = true;
 #endif
 }
 
@@ -327,6 +340,8 @@ void UIManager::initializeImGui(GLFWwindow* window) {
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130");
+    // Build font texture after initial font load
+    ImGui_ImplOpenGL3_CreateFontsTexture();
 }
 
 void UIManager::shutdownImGui() {

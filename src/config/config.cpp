@@ -23,9 +23,9 @@ bool Config::loadFromFile(const std::string& path) {
         if (key == "chunk.size_x") chunk_.sizeX = std::stoi(val);
         else if (key == "chunk.size_y") chunk_.sizeY = std::stoi(val);
         else if (key == "chunk.size_z") chunk_.sizeZ = std::stoi(val);
-        else if (key == "log.level") logging_.level = val;
-        else if (key == "log.file") logging_.filePath = val;
-        else if (key == "vsync") graphics_.vsync = (val == "true" || val == "1");
+        else if (key == "logging.level") logging_.level = val;
+        else if (key == "logging.file") logging_.filePath = val;
+        else if (key == "graphics.vsync") graphics_.vsync = (val == "true" || val == "1");
         else if (key == "graphics.resolution_width") graphics_.resolution_width = std::stoi(val);
         else if (key == "graphics.resolution_height") graphics_.resolution_height = std::stoi(val);
         else if (key == "graphics.quality") graphics_.quality = val;

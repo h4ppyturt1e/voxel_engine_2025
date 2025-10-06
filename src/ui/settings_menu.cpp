@@ -8,11 +8,13 @@
 
 #include "../config/config.hpp"
 #include "../config/config_manager.hpp"
+#include "../config/ini_parser.hpp"
 #include "../core/logging.hpp"
 #include "../input/input_manager.hpp"
 
 #include <sstream>
 #include <fstream>
+#include <filesystem>
 
 namespace ui {
 
@@ -115,48 +117,11 @@ void SettingsMenu::renderGraphicsSettings() {
     
     ImGui::Spacing();
     
-    // Resolution UI: Aspect ratio + resolution lists and fullscreen toggle
-    ImGui::Text("Aspect Ratio:");
-    static const char* aspect_labels[] = { "16:9", "16:10", "4:3", "21:9", "32:9" };
-    // Initialize aspect_index_ based on current resolution
-    int curW = temp_settings_.resolution_width;
-    int curH = temp_settings_.resolution_height;
-    float ar = (curH > 0) ? ((float)curW / (float)curH) : 16.0f/9.0f;
-    int inferredAspect = 0;
-    if (std::fabs(ar - (16.0f/9.0f)) < 0.05f) inferredAspect = 0;
-    else if (std::fabs(ar - (16.0f/10.0f)) < 0.05f) inferredAspect = 1;
-    else if (std::fabs(ar - (4.0f/3.0f)) < 0.05f) inferredAspect = 2;
-    else if (std::fabs(ar - (21.0f/9.0f)) < 0.08f) inferredAspect = 3;
-    else if (std::fabs(ar - (32.0f/9.0f)) < 0.1f) inferredAspect = 4;
-    if (aspect_index_ < 0 || aspect_index_ > 4) aspect_index_ = inferredAspect; // first open
-    ImGui::Combo("##Aspect", &aspect_index_, aspect_labels, IM_ARRAYSIZE(aspect_labels));
-    ImGui::Text("Resolution:");
-    // Common resolutions (filtered by aspect informally)
-    static const char* res_169[] = { "1280x720", "1600x900", "1920x1080", "2560x1440", "3840x2160" };
-    static const char* res_1610[] = { "1280x800", "1440x900", "1680x1050", "1920x1200", "2560x1600" };
-    static const char* res_43[] = { "1024x768", "1280x960", "1600x1200" };
-    static const char* res_219[] = { "2560x1080", "3440x1440", "3840x1600" };
-    static const char* res_329[] = { "5120x1440", "3840x1080" };
-    const char** res_list = res_169; int res_count = IM_ARRAYSIZE(res_169);
-    if (aspect_index_==1) { res_list = res_1610; res_count = IM_ARRAYSIZE(res_1610);} else if (aspect_index_==2) { res_list = res_43; res_count = IM_ARRAYSIZE(res_43);} else if (aspect_index_==3) { res_list = res_219; res_count = IM_ARRAYSIZE(res_219);} else if (aspect_index_==4) { res_list = res_329; res_count = IM_ARRAYSIZE(res_329);} 
-    // On first open, try to match current resolution to res_index_
-    if (res_index_ == 0) {
-        for (int i = 0; i < res_count; ++i) {
-            int w=0,h=0; if (std::sscanf(res_list[i], "%dx%d", &w, &h)==2) {
-                if (w == curW && h == curH) { res_index_ = i; break; }
-            }
-        }
-    }
-    ImGui::Combo("##Resolution", &res_index_, res_list, res_count);
+    // Resolution simplified: force default shown value 1280x720 until Apply
+    temp_settings_.resolution_width = 1280;
+    temp_settings_.resolution_height = 720;
+    ImGui::Text("Resolution: 1280 x 720 (fixed)");
     if (ImGui::Checkbox("Fullscreen", &temp_settings_.fullscreen)) { settings_changed_ = true; }
-    // Preview selected resolution into temp settings
-    int selW = temp_settings_.resolution_width, selH = temp_settings_.resolution_height;
-    {
-        const char* sel = res_list[(res_index_>=0 && res_index_<res_count)?res_index_:0];
-        int w=0,h=0; if (std::sscanf(sel, "%dx%d", &w, &h)==2) { selW = w; selH = h; }
-    }
-    temp_settings_.resolution_width = selW;
-    temp_settings_.resolution_height = selH;
     // Removed per-section Apply; master Apply button handles it
     // Persist fullscreen into settings on apply path below
     
@@ -203,6 +168,15 @@ void SettingsMenu::renderUISettings() {
     }
     
     ImGui::Spacing();
+
+    // Custom font toggle
+    if (ImGui::Checkbox("Use custom font", &temp_settings_.font_enabled)) { settings_changed_ = true; }
+    
+    // Font size (default font)
+    ImGui::Text("Font Size: %.0f", temp_settings_.font_size);
+    if (ImGui::SliderFloat("##UIFontSize", &temp_settings_.font_size, 10.0f, 36.0f, "%.0f")) {
+        settings_changed_ = true;
+    }
 
     // Crosshair
     if (ImGui::Checkbox("Enable Crosshair", &temp_settings_.crosshair_enabled)) {
@@ -286,18 +260,18 @@ void SettingsMenu::saveSettings() {
         // Write graphics section
         file << "[graphics]\n";
         file << "vsync=" << (settings_.vsync ? "true" : "false") << "\n";
-        file << "graphics.resolution_width=" << settings_.resolution_width << "\n";
-        file << "graphics.resolution_height=" << settings_.resolution_height << "\n";
-        file << "graphics.fullscreen=" << (settings_.fullscreen ? "true" : "false") << "\n";
+        file << "resolution_width=" << settings_.resolution_width << "\n";
+        file << "resolution_height=" << settings_.resolution_height << "\n";
+        file << "fullscreen=" << (settings_.fullscreen ? "true" : "false") << "\n";
         file << "# graphics.quality=" << settings_.quality << "\n\n";
         
         // Write UI section
         file << "[ui]\n";
-        file << "ui.mouse_sensitivity=" << settings_.mouse_sensitivity << "\n";
-        file << "ui.crosshair_enabled=" << (settings_.crosshair_enabled ? "true" : "false") << "\n";
-        file << "ui.crosshair_percent=" << settings_.crosshair_percent << "\n";
-        file << "ui.theme=" << settings_.theme << "\n";
-        file << "ui.scale=" << settings_.scale << "\n\n";
+        file << "mouse_sensitivity=" << settings_.mouse_sensitivity << "\n";
+        file << "crosshair_enabled=" << (settings_.crosshair_enabled ? "true" : "false") << "\n";
+        file << "crosshair_percent=" << settings_.crosshair_percent << "\n";
+        file << "theme=" << settings_.theme << "\n";
+        file << "scale=" << settings_.scale << "\n\n";
         
         // Audio section removed
         
@@ -328,6 +302,17 @@ void SettingsMenu::loadSettings() {
     // size removed
     settings_.crosshair_percent = uiConfig.crosshair_percent;
     settings_.fullscreen = config::Config::instance().graphics().fullscreen;
+    // Load font_size from theme.ini
+    {
+        config::IniParser parser;
+        if (parser.parseFile(config::ConfigManager::instance().getConfigPath("theme.ini"))) {
+            auto uiSec = parser.section("ui");
+            auto its = uiSec.find("font_size");
+            if (its != uiSec.end()) {
+                try { settings_.font_size = std::stof(its->second); } catch (...) { settings_.font_size = 18.0f; }
+            } else { settings_.font_size = 18.0f; }
+        } else { settings_.font_size = 18.0f; }
+    }
     
     // Initialize temp settings to same values
     temp_settings_.vsync = settings_.vsync;
@@ -343,7 +328,8 @@ void SettingsMenu::loadSettings() {
     temp_settings_.crosshair_percent = settings_.crosshair_percent;
     temp_settings_.fullscreen = settings_.fullscreen;
     temp_settings_.crosshair_enabled = settings_.crosshair_enabled;
-    
+    temp_settings_.font_size = settings_.font_size;
+    temp_settings_.font_enabled = settings_.font_enabled;
     settings_changed_ = false;
 }
 
@@ -376,9 +362,10 @@ void SettingsMenu::applySettings() {
     settings_.theme = temp_settings_.theme;
     settings_.scale = temp_settings_.scale;
     settings_.crosshair_enabled = temp_settings_.crosshair_enabled;
-    // size removed
     settings_.crosshair_percent = temp_settings_.crosshair_percent;
     settings_.fullscreen = temp_settings_.fullscreen;
+    settings_.font_size = temp_settings_.font_size;
+    settings_.font_enabled = temp_settings_.font_enabled;
     
     saveSettings();
     
@@ -406,6 +393,28 @@ void SettingsMenu::applySettings() {
         config.ui().crosshair_percent = settings_.crosshair_percent;
         config.ui().theme = settings_.theme;
         config.ui().scale = settings_.scale;
+        // Persist font settings to theme.ini [ui]
+        {
+            std::string themePath = config::ConfigManager::instance().getConfigPath("theme.ini");
+            std::ifstream in(themePath);
+            std::vector<std::string> lines; std::string line;
+            while (std::getline(in, line)) lines.push_back(line);
+            in.close();
+            if (lines.empty()) lines.push_back("[ui]");
+            auto trim = [](std::string s){ while(!s.empty() && (s.back()=='\r'||s.back()=='\n')) s.pop_back(); return s; };
+            int uiStart=-1, uiEnd=(int)lines.size();
+            for (int i=0;i<(int)lines.size();++i){ std::string t=lines[i]; if (trim(t)=="[ui]"){ uiStart=i; break; } }
+            if (uiStart==-1){ lines.push_back("[ui]"); lines.push_back(std::string("font_size=")+std::to_string((int)temp_settings_.font_size)); lines.push_back(std::string("font_enabled=")+(temp_settings_.font_enabled?"true":"false")); }
+            else {
+                for (int i=uiStart+1;i<(int)lines.size();++i){ std::string t=trim(lines[i]); if (!t.empty() && t.front()=='[' && t.back()==']'){ uiEnd=i; break; } }
+                bool foundSize=false, foundEnabled=false;
+                for (int i=uiStart+1;i<uiEnd;++i){ std::string t=trim(lines[i]); if (t.rfind("font_size=",0)==0){ lines[i]=std::string("font_size=")+std::to_string((int)temp_settings_.font_size); foundSize=true; } if (t.rfind("font_enabled=",0)==0){ lines[i]=std::string("font_enabled=")+(temp_settings_.font_enabled?"true":"false"); foundEnabled=true; } }
+                if (!foundSize) lines.insert(lines.begin()+uiEnd, std::string("font_size=")+std::to_string((int)temp_settings_.font_size));
+                if (!foundEnabled) lines.insert(lines.begin()+uiEnd, std::string("font_enabled=")+(temp_settings_.font_enabled?"true":"false"));
+            }
+            std::ofstream out(themePath, std::ios::trunc); for (auto& l:lines) out<<l<<"\n";
+        }
+        ui::UIManager::instance().markThemeDirty();
         
         // Apply mouse sensitivity to InputManager immediately
         input::InputManager& inputManager = input::InputManager::instance();
@@ -413,7 +422,9 @@ void SettingsMenu::applySettings() {
 
         // Apply VSync and UI appearance immediately, and update window size
         ui::UIManager::instance().setVSync(settings_.vsync);
+        // Defer theme/font changes to start of next frame to avoid GL crashes
         ui::UIManager::instance().applySettings();
+        ui::UIManager::instance().markThemeDirty();
         ui::UIManager::instance().setWindowSize(settings_.resolution_width, settings_.resolution_height);
         ui::UIManager::instance().setFullscreen(config.graphics().fullscreen);
 
