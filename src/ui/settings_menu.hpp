@@ -1,6 +1,7 @@
 #pragma once
 
 #include "overlay.hpp"
+#include "../input/input_manager.hpp"
 
 namespace ui {
 
@@ -36,6 +37,7 @@ private:
 		bool fullscreen;
         float font_size;
         bool font_enabled;
+        std::unordered_map<input::Action, std::string> key_bindings;
     } settings_;
     
     // Temporary UI values (for sliders/inputs)
@@ -53,6 +55,7 @@ private:
 		bool fullscreen;
         float font_size;
         bool font_enabled;
+        std::unordered_map<input::Action, std::string> key_bindings;
     } temp_settings_;
     
     bool settings_changed_ = false;
@@ -60,6 +63,8 @@ private:
     // Resolution selection state
     int aspect_index_ = 0; // 0:16:9,1:16:10,2:4:3,3:21:9,4:32:9
     int res_index_ = 0;
+
+    std::string warning_message{""};
 };
 
 } // namespace ui

@@ -55,25 +55,8 @@ bool InputManager::loadConfig(const std::string& configPath) {
     return true;
 }
 
-bool InputManager::saveConfig(const std::string& configPath) {
-    std::ofstream file(configPath);
-    if (!file.is_open()) return false;
-    
-    file << "# Input Configuration File\n";
-    file << "# Format: action=key_name\n\n";
-    
-    file << "[actions]\n";
-    for (const auto& pair : actionToKey_) {
-        Action action = pair.first;
-        int keyCode = pair.second;
-        std::string keyName = keyCodeToName(keyCode);
-        if (!keyName.empty()) {
-            file << actionToString(action) << "=" << keyName << "\n";
-        }
-    }
-    
-    // Note: mouse_sensitivity is now managed by main config system, not saved here
-    return true;
+std::unordered_map<Action, int> InputManager::getInputBindings() {
+    return actionToKey_;
 }
 
 void InputManager::update() {
@@ -111,7 +94,23 @@ void InputManager::setMouseSensitivity(float sensitivity) {
     core::log(core::LogLevel::Info, "Mouse sensitivity updated to: " + std::to_string(sensitivity));
 }
 
+
+// registers a callback that will be called on the next key press
+// this callback will be used on setKeyState
+void InputManager::waitForNextKey(std::function<bool(int)> callback) {
+    if (waitingForKeyCallback_) {
+        core::log(core::LogLevel::Warn, "Already waiting for a key press. Ignoring new callback.");
+        return;
+    }
+
+    waitingForKeyCallback_ = callback;
+    }
+
 void InputManager::setKeyState(int key, bool pressed) {
+    if (waitingForKeyCallback_ && pressed) {
+        bool result = waitingForKeyCallback_(key);
+        if (result) waitingForKeyCallback_ = nullptr;
+    }
     keyStates_[key] = pressed;
 }
 

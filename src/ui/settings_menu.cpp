@@ -11,6 +11,7 @@
 #include "../config/ini_parser.hpp"
 #include "../core/logging.hpp"
 #include "../input/input_manager.hpp"
+#include "../input/key_constants.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -75,7 +76,8 @@ void SettingsMenu::render() {
         }
         
         ImGui::Separator();
-        
+        ImGui::Spacing();
+        ImGui::Text(warning_message.c_str());
         // Action buttons
         ImGui::Spacing();
         if (ImGui::Button("Apply", ImVec2(100, 0))) {
@@ -209,31 +211,71 @@ void SettingsMenu::renderUISettings() {
 }
 
 void SettingsMenu::renderControls() {
-#ifdef VOXEL_WITH_GL
+    #ifdef VOXEL_WITH_GL
+    std::vector<std::pair<input::Action, std::string>> controls = {
+        // {input::Action::ToggleMenu, "Toggle Menu"},   //idt we want this one to change?
+        {input::Action::ToggleDebug, "Toggle Debug"},
+        {input::Action::ToggleMouseLock, "Toggle Mouse Lock"},
+        {input::Action::ToggleVSync, "Toggle VSync"},
+        {input::Action::RecenterCamera, "Recenter Camera"},
+        {input::Action::ToggleWireframe, "Toggle Wireframe"},
+        {input::Action::MoveForward, "Move Forward"},
+        {input::Action::MoveBackward, "Move Backward"},
+        {input::Action::MoveLeft, "Move Left"},
+        {input::Action::MoveRight, "Move Right"},
+        {input::Action::MoveUp, "Move Up"},
+        {input::Action::MoveDown, "Move Down"},
+        {input::Action::FastMovement, "Fast Movement"},
+        {input::Action::BreakBlock, "Break Block"},
+        {input::Action::PlaceBlock, "Place Block"}
+    };
+
     ImGui::Text("Controls");
     ImGui::Separator();
-    
+
     ImGui::Text("Key Bindings:");
-    ImGui::Text("ESC - Toggle Menu");
-    ImGui::Text("F3 - Toggle Debug");
-    ImGui::Text("F4 - Toggle Mouse Lock");
-    ImGui::Text("F5 - Toggle VSync");
-    ImGui::Text("R - Recenter Camera");
-    ImGui::Text("F - Toggle Wireframe");
-    ImGui::Text("WASD - Move");
-    ImGui::Text("Space - Move Up");
-    ImGui::Text("Ctrl - Move Down");
-    ImGui::Text("Shift - Fast Movement");
-    ImGui::Text("Mouse - Look");
-    ImGui::Text("Left Click - Break Block");
-    ImGui::Text("Right Click - Place Block");
-    
-    ImGui::Spacing();
-    
-    if (ImGui::Button("Open Key Bindings Menu", ImVec2(200, 0))) {
-        // TODO: Open key bindings menu
-        core::log(core::LogLevel::Info, "Key bindings menu not yet implemented");
+
+    ImGui::Columns(2, nullptr, false);
+
+    for (auto& [actionEnum, controlName] : controls) {
+        ImGui::Text("%s", controlName.c_str());
+        ImGui::NextColumn();
+
+        // add ##controlName so button labels are guaranteed to be unique
+        std::string buttonLabel = temp_settings_.key_bindings[actionEnum] + "##" + controlName;
+
+        if (ImGui::Button(buttonLabel.c_str(), ImVec2(200, 0)) && buttonLabel.find("Press any key") == std::string::npos) {
+            temp_settings_.key_bindings[actionEnum] = "Press any key";
+
+            input::InputManager::instance().waitForNextKey([this, actionEnum, controlName](int key) {
+                // (not implemented) handle illegal key bindings
+                // (not implemented) handle escape to cancel
+
+                // handle duplicate key bindings
+                for (const auto& [otherAction, keyName] : temp_settings_.key_bindings) {
+                    if (otherAction != actionEnum && keyName != "Unbound") {
+                        core::log(core::LogLevel::Debug, "Checking for duplicate key binding: " + keyName);
+                        int otherKeyCode = input::keyNameToCode(keyName);
+                        if (otherKeyCode == key) {
+                            // Key is already bound to another action
+                            temp_settings_.key_bindings[otherAction] = "Unbound";                                  
+                        }
+                    }
+                }
+
+                // set new binding
+                std::string keyName = input::keyCodeToName(key);
+                temp_settings_.key_bindings[actionEnum] = keyName;
+                settings_changed_ = true;
+                return true;
+            });
+        }
+
+        ImGui::NextColumn();
     }
+
+    ImGui::Columns(1);
+
 #endif
 }
 
@@ -274,10 +316,32 @@ void SettingsMenu::saveSettings() {
         file << "scale=" << settings_.scale << "\n\n";
         
         // Audio section removed
-        
         file.close();
         core::log(core::LogLevel::Info, "Settings saved to: " + configPath);
         
+    } catch (const std::exception& e) {
+        core::log(core::LogLevel::Error, "Failed to save settings: " + std::string(e.what()));
+        return;
+    }
+
+    configPath = configManager.getConfigPath("input.ini");
+    try {
+        std::ofstream file(configPath);
+        if (!file.is_open()) {
+            core::log(core::LogLevel::Error, "Failed to open config file for writing: " + configPath);
+            return;
+        }
+        
+        // Write header
+        file << "# Input Configuration File\n# Format: action=key_name\n";
+        file << "[actions]\n";
+        for (const auto& [action, keyName] : settings_.key_bindings) {
+            file << input::InputManager::instance().actionToString(action) << "=" << keyName << "\n";
+        }
+
+        file.close();
+        core::log(core::LogLevel::Info, "Settings saved to: " + configPath);
+
     } catch (const std::exception& e) {
         core::log(core::LogLevel::Error, "Failed to save settings: " + std::string(e.what()));
         return;
@@ -289,7 +353,7 @@ void SettingsMenu::saveSettings() {
 void SettingsMenu::loadSettings() {
     const auto& graphicsConfig = config::Config::instance().graphics();
     const auto& uiConfig = config::Config::instance().ui();
-    
+
     // Load applied settings
     settings_.vsync = graphicsConfig.vsync;
     settings_.resolution_width = graphicsConfig.resolution_width;
@@ -313,24 +377,13 @@ void SettingsMenu::loadSettings() {
             } else { settings_.font_size = 18.0f; }
         } else { settings_.font_size = 18.0f; }
     }
-    
+
+    for (const auto& [action, keycode] : input::InputManager::instance().getInputBindings()) {
+        settings_.key_bindings.emplace(action, input::keyCodeToName(keycode));
+    }
+
     // Initialize temp settings to same values
-    temp_settings_.vsync = settings_.vsync;
-    temp_settings_.resolution_width = settings_.resolution_width;
-    temp_settings_.resolution_height = settings_.resolution_height;
-    temp_settings_.quality = settings_.quality;
-    temp_settings_.mouse_sensitivity = settings_.mouse_sensitivity;
-    temp_settings_.mouse_sensitivity_percent = (settings_.mouse_sensitivity - 0.001f) / (0.08f - 0.001f) * 100.0f;
-    temp_settings_.theme = settings_.theme;
-    temp_settings_.scale = settings_.scale;
-    temp_settings_.crosshair_enabled = settings_.crosshair_enabled;
-    // size removed
-    temp_settings_.crosshair_percent = settings_.crosshair_percent;
-    temp_settings_.fullscreen = settings_.fullscreen;
-    temp_settings_.crosshair_enabled = settings_.crosshair_enabled;
-    temp_settings_.font_size = settings_.font_size;
-    temp_settings_.font_enabled = settings_.font_enabled;
-    settings_changed_ = false;
+    SettingsMenu::resetTempSettings();
 }
 
 void SettingsMenu::resetTempSettings() {
@@ -347,13 +400,29 @@ void SettingsMenu::resetTempSettings() {
     temp_settings_.mouse_sensitivity_percent = (settings_.mouse_sensitivity - 0.0001f) / (0.08f - 0.0001f) * 100.0f;
     temp_settings_.theme = settings_.theme;
     temp_settings_.scale = settings_.scale;
+
+    temp_settings_.key_bindings.clear();
+    for (const auto& kv : settings_.key_bindings) {
+        temp_settings_.key_bindings.emplace(kv.first, kv.second);
+    }
+
     settings_changed_ = false;
+    warning_message = "";
     
     core::log(core::LogLevel::Info, "Temp settings reset to applied values");
 }
 
 void SettingsMenu::applySettings() {
     // Copy temp settings to applied settings
+    for (const auto& kv : temp_settings_.key_bindings) {
+        if (kv.second == "Unbound") {
+            warning_message = "Some keys are unbound. Please bind all actions before applying.";
+            return;
+        }
+        settings_.key_bindings[kv.first] = kv.second;
+    }
+    warning_message = "";
+
     settings_.vsync = temp_settings_.vsync;
     settings_.resolution_width = temp_settings_.resolution_width;
     settings_.resolution_height = temp_settings_.resolution_height;
@@ -366,7 +435,7 @@ void SettingsMenu::applySettings() {
     settings_.fullscreen = temp_settings_.fullscreen;
     settings_.font_size = temp_settings_.font_size;
     settings_.font_enabled = temp_settings_.font_enabled;
-    
+
     saveSettings();
     
     // Apply immediate settings
@@ -419,6 +488,10 @@ void SettingsMenu::applySettings() {
         // Apply mouse sensitivity to InputManager immediately
         input::InputManager& inputManager = input::InputManager::instance();
         inputManager.setMouseSensitivity(settings_.mouse_sensitivity);
+
+        // Apply key bindings to InputManager
+        std::string inputPath = config::ConfigManager::instance().getConfigPath("input.ini");
+        inputManager.loadConfig(inputPath);
 
         // Apply VSync and UI appearance immediately, and update window size
         ui::UIManager::instance().setVSync(settings_.vsync);

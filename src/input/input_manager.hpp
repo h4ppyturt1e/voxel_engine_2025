@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <functional>
 
 namespace input {
 
@@ -25,7 +26,6 @@ public:
     
     bool initialize();
     bool loadConfig(const std::string& configPath);
-    bool saveConfig(const std::string& configPath);
     void update();
     
     bool isActionPressed(Action action) const;
@@ -34,7 +34,10 @@ public:
     
     void setKeyState(int key, bool pressed);
     void setMouseDelta(float deltaX, float deltaY);
-
+    std::unordered_map<Action, int> getInputBindings();
+    std::string actionToString(Action action) const;
+    void waitForNextKey(std::function<bool(int)> callback);
+    
 private:
     InputManager() = default;
     
@@ -42,6 +45,7 @@ private:
     std::unordered_map<InputContext, std::unordered_map<Action, int>> contextMappings_;
     std::unordered_map<int, bool> keyStates_;
     std::unordered_map<int, bool> prevKeyStates_;
+    std::function<bool(int)> waitingForKeyCallback_{nullptr};
     
     InputContext currentContext_{InputContext::Game};
     
@@ -54,7 +58,6 @@ private:
     std::int64_t lastConfigModTime_{0};
     
     void setupContextMappings();
-    std::string actionToString(Action action) const;
     Action stringToAction(const std::string& str) const;
 };
 
