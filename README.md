@@ -21,7 +21,7 @@ A modern, modular C++ voxel engine with clean architecture and configurable inpu
 
 ### Prerequisites
 - Visual Studio 2022 Community (with "Desktop development with C++" workload)
-- CMake 3.16+
+- CMake 3.20+
 
 ### Build & Run
 ```cmd
@@ -175,5 +175,6 @@ Example log output:
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ## License
+
 
 This project is licensed under the MIT License - see the LICENSE file for details.
